@@ -353,7 +353,46 @@ class Engine {
     }
   }
 
+  /** Director mode: water frames kept during a run so any moment can be shown again exactly. */
+  recording: Partial<Record<"base" | "design", { t: number[]; depth: Float32Array[]; speed: Float32Array[]; rain: number[] }>> | null = null;
+  recordEvery = 60;
+
+  private record(key: "base" | "design", f: RunFrame) {
+    const rec = (this.recording![key] ??= { t: [], depth: [], speed: [], rain: [] });
+    const last = rec.t[rec.t.length - 1];
+    if (last !== undefined && f.t - last < this.recordEvery && !f.done) return;
+    if (last !== undefined && f.t <= last) return;
+    rec.t.push(f.t);
+    rec.depth.push(f.depth.slice());
+    rec.speed.push(f.speed.slice());
+    rec.rain.push(f.stats.rainRateMmH);
+  }
+
+  /** Director mode: show both runs as they were at storm time `t` (seconds), interpolating between recorded frames. */
+  showAt(t: number) {
+    const r = this.scene3d;
+    if (!r || !this.recording) return;
+    for (const key of ["base", "design"] as const) {
+      const rec = this.recording[key];
+      if (!rec?.t.length) continue;
+      let k = 0;
+      while (k + 1 < rec.t.length && rec.t[k + 1] <= t) k++;
+      const k2 = Math.min(rec.t.length - 1, k + 1);
+      const a = k2 === k ? 0 : Math.max(0, Math.min(1, (t - rec.t[k]) / (rec.t[k2] - rec.t[k])));
+      const mix = (u: Float32Array, v: Float32Array) => {
+        const out = new Float32Array(u.length);
+        for (let c = 0; c < u.length; c++) out[c] = u[c] + (v[c] - u[c]) * a;
+        return out;
+      };
+      const depth = mix(rec.depth[k], rec.depth[k2]);
+      r.setWater(key, depth, mix(rec.speed[k], rec.speed[k2]));
+      r.setBuildingWet(key, this.buildingWet(depth));
+      r.setRain(rec.rain[k] + (rec.rain[k2] - rec.rain[k]) * a);
+    }
+  }
+
   private frame(key: "base" | "design", f: RunFrame) {
+    if (this.recording) this.record(key, f);
     const r = this.scene3d;
     // With no design, the "without" run is the only one: show it on both sides.
     const single = !this.sim.latest.base && key === "design" && useApp.getState().features.length === 0;

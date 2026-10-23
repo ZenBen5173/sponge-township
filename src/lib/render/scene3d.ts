@@ -1022,13 +1022,41 @@ export class Scene3D {
   private loop = () => {
     this.raf = requestAnimationFrame(this.loop);
     const dt = Math.min(0.1, this.clock.getDelta());
-    const t = this.clock.elapsedTime;
-    this.controls.update();
+    if (this.manual) return;
+    this.tick(dt, this.clock.elapsedTime);
+  };
+
+  /** Director mode: the render loop stops and every frame is drawn on request at an exact time. */
+  manual = false;
+  /** Director mode: fixed storminess (0–1) instead of easing towards the rain rate. */
+  stormOverride: number | null = null;
+
+  renderAt(t: number, dt = 1 / 30) {
+    this.tick(dt, t);
+  }
+
+  /** Place the camera exactly: look at local point (x, y metres) from `dist` m, azimuth and elevation in degrees. */
+  setPose(p: { x: number; y: number; dist: number; az: number; el: number }) {
+    const target = new THREE.Vector3(p.x - this.S / 2, this.groundAt(p.x, p.y), p.y - this.S / 2);
+    const az = (p.az * Math.PI) / 180;
+    const el = (p.el * Math.PI) / 180;
+    this.controls.target.copy(target);
+    this.camera.position.set(target.x + p.dist * Math.cos(el) * Math.sin(az), target.y + p.dist * Math.sin(el), target.z + p.dist * Math.cos(el) * Math.cos(az));
+    this.camera.lookAt(target);
+  }
+
+  get size() {
+    return this.S;
+  }
+
+  private tick(dt: number, t: number) {
+    if (!this.manual) this.controls.update();
     // weather: ease towards the rain intensity
     const target = Math.min(1, this.rainMmH / 60);
     this.storminess += (target - this.storminess) * Math.min(1, dt * 1.5);
+    if (this.stormOverride !== null) this.storminess = this.stormOverride;
     const st = this.storminess;
-    if (this.rainMmH > 45 && Math.random() < dt * 0.12) this.flash = 1;
+    if (!this.manual && this.rainMmH > 45 && Math.random() < dt * 0.12) this.flash = 1;
     this.flash = Math.max(0, this.flash - dt * 3.5);
     const light = 1 - st * 0.55 + this.flash * 0.9;
     this.sun.intensity = 2.4 * (1 - st * 0.75) + this.flash * 3;
@@ -1066,7 +1094,7 @@ export class Scene3D {
     this.render();
     this.frameId++;
     this.onFrame?.();
-  };
+  }
 
   private render() {
     const r = this.renderer;
