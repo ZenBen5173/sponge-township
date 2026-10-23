@@ -101,26 +101,31 @@ describe("solver", () => {
     for (let c = 0; c < m.N; c++) expect(m.h[c]).toBeGreaterThanOrEqual(0);
   }, 60_000);
 
-  it("a water square fed by a drain lowers street flooding downhill", () => {
+  it("a water square beside a street lowers its peak; a gutter delivers street water into it", () => {
     const nx = 100;
     const ny = 60;
-    // A street running downhill west→east into a closed low end (a dead-end pocket).
+    // a street (y 50–70 m) running downhill west→east between open strips and solid blocks
     const zf = (x: number) => 6 - 0.006 * x;
     const landf = (i: number, j: number) => (j >= 25 && j < 35 ? Land.Road : j >= 20 && j < 40 ? Land.Open : Land.Building);
-    const storm = { ...KAPAR_2023 };
     const params = { ...DEFAULT_PARAMS, drainMmPerHour: 10, afterMin: 30 };
-    const base = new FloodModel(grid(nx, ny, 2, zf, landf), [], storm, params);
-    const sq: Feature[] = [
-      { id: "sq", kind: "square", name: "Square", cx: 120, cy: 50, w: 40, l: 10, rot: 0, depth: 1, outletD: 0.2 },
-      { id: "dr", kind: "drain", name: "Gutter", pts: [[20, 60], [100, 60]], capacityPerM: 0.004 },
-    ];
-    const design = new FloodModel(grid(nx, ny, 2, zf, landf), sq, storm, params);
-    base.advanceTo(base.tEnd);
-    design.advanceTo(design.tEnd);
-    const a = base.stats(1);
-    const b = design.stats(1);
+    const court: Feature = { id: "sq", kind: "square", name: "Square", cx: 150, cy: 45, w: 40, l: 9, rot: 0, depth: 1, outletD: 0.2 };
+    const gutter: Feature = { id: "dr", kind: "drain", name: "Gutter", pts: [[20, 60], [150, 60], [150, 50]], capacityPerM: 0.006 };
+    const run = (fs: Feature[]) => {
+      const m = new FloodModel(grid(nx, ny, 2, zf, landf), fs, KAPAR_2023, params);
+      m.advanceTo(m.tEnd);
+      return m.stats(1);
+    };
+    const a = run([]);
+    const b = run([court]);
+    const c = run([court, gutter]);
+    expect(b.features.find((f) => f.id === "sq")!.peakStored).toBeGreaterThan(100);
     expect(b.peakStreetDepth).toBeLessThan(a.peakStreetDepth);
-    expect(Math.abs(b.balance.error)).toBeLessThan(1e-9);
+    // the gutter catches street water and the court never takes more than it can hold
+    const g = c.features.find((f) => f.id === "dr")!;
+    const sq = c.features.find((f) => f.id === "sq")!;
+    expect(g.captured).toBeGreaterThan(100);
+    expect(sq.peakStored).toBeLessThanOrEqual(sq.capacity * 1.05);
+    for (const s of [a, b, c]) expect(Math.abs(s.balance.error)).toBeLessThan(1e-9);
   }, 60_000);
 
   it("runs a 300 × 300 grid fast enough for the browser", () => {
