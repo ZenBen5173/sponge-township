@@ -248,17 +248,8 @@ export function AreaPicker() {
         className="absolute left-3 top-3 w-[min(380px,calc(100%-24px))] sm:left-5 sm:top-5"
       >
         <Panel className="overflow-visible p-4">
-          <Label tone="tomato">Step 01 · Pick an area</Label>
-          <h2 className="mt-1 font-display text-[27px] font-bold leading-[1.02] tracking-tight text-foreground">Where does the water go?</h2>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-            Pick a Sime Darby township, search any place, or drag the box. We load the ground, the satellite view, every street and house, then let it rain.
-          </p>
-          <div className="mt-1 flex items-center gap-1 font-hand text-[19px] leading-none text-primary">
-            <svg viewBox="0 0 40 20" className="h-4 w-8 shrink-0" aria-hidden>
-              <path d="M2 4 C 12 2, 22 6, 30 14 M30 14 l-6 0 M30 14 l0 -6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-            Casira went under on 4 June 2023 — start there
-          </div>
+          <h2 className="font-display text-[27px] font-bold leading-[1.02] tracking-tight text-foreground">Where does the water go?</h2>
+          <div className="mt-1 font-hand text-[19px] leading-none text-primary">Casira went under on 4 June 2023</div>
 
           <div ref={boxRef} className="relative mt-3">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -390,7 +381,7 @@ export function AreaPicker() {
               step={10}
               onChange={(v) => setArea({ ...areaRef.current, size: v })}
               format={(v) => (v >= 1000 ? `${(v / 1000).toFixed(2)} km` : `${v} m`)}
-              hint={`${(area.size * area.size / 1e4).toFixed(1)} ha · simulated on a ${g.nx} × ${g.ny} grid of ${g.dx.toFixed(1)} m cells`}
+              hint={`${(area.size * area.size / 1e4).toFixed(1)} ha`}
             />
           </div>
 
@@ -431,9 +422,6 @@ export function AreaPicker() {
         </Panel>
       </motion.div>
 
-      <div className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 rounded-full border border-foreground bg-card px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-foreground shadow-[2px_2px_0_0_var(--foreground)] sm:block">
-        Drag the box to move it · scroll to zoom
-      </div>
     </div>
   );
 }

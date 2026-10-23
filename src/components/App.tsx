@@ -70,7 +70,7 @@ export default function App() {
         <header className="relative z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-3 sm:px-4">
           <Logo />
           <nav className="flex h-full items-stretch gap-1 sm:gap-3">
-            {STEPS.map((s, k) => {
+            {STEPS.map((s) => {
               const active = phase === s.id;
               const disabled = s.id === "design" && !canDesign;
               return (
@@ -85,10 +85,7 @@ export default function App() {
                   title={disabled ? "Pick an area first" : s.label}
                 >
                   <span className={cn("transition-colors", active ? "text-primary" : "group-hover:text-foreground")}>{s.icon}</span>
-                  <span className="hidden md:inline">
-                    <span className="mr-1.5 font-mono text-[10px] text-muted-foreground">0{k + 1}</span>
-                    {s.label}
-                  </span>
+                  <span className="hidden md:inline">{s.label}</span>
                   {active && <motion.span layoutId="step-underline" transition={SPRING.default} className="absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-primary" />}
                 </button>
               );
@@ -105,7 +102,6 @@ export default function App() {
               }
             }}
             className="lift group flex items-center gap-1.5 rounded-lg border-[1.5px] border-foreground bg-card px-3 py-1.5 text-xs font-medium text-foreground disabled:pointer-events-none disabled:opacity-40"
-            title="Before/after images and a numbers summary for the pitch deck"
           >
             {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5 transition-transform group-hover:translate-y-0.5" />}
             <span className="hidden sm:inline">Export results</span>
@@ -159,12 +155,6 @@ export default function App() {
                 </div>
                 <div className="pointer-events-auto hidden sm:block">
                   <Timeline />
-                </div>
-                <div className="card pointer-events-auto rounded-xl px-3 py-2 text-[11px] text-muted-foreground sm:hidden">
-                  The designer works best on a laptop.{" "}
-                  <button onClick={() => set({ phase: "monitor" })} className="text-primary underline">
-                    Open the resident dashboard
-                  </button>
                 </div>
               </div>
             </div>

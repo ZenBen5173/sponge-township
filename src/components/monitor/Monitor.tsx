@@ -250,8 +250,7 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
     <div className={cn("mx-auto w-full max-w-6xl", embedded ? "h-full overflow-y-auto p-3 sm:p-5 scroll-thin" : "p-4 sm:p-6")}>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Label tone="tomato">Step 3 · Monitor</Label>
-          <h1 className="mt-1 font-display text-3xl font-bold leading-none tracking-tight sm:text-4xl">
+          <h1 className="font-display text-3xl font-bold leading-none tracking-tight sm:text-4xl">
             Is the court{" "}
             <span className="relative inline-block">
               dry?
@@ -260,7 +259,6 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
               </svg>
             </span>
           </h1>
-          <p className="mt-1 max-w-md text-xs text-muted-foreground">Residents see this on their phones: the square&apos;s water level, whether the court is open, and why.</p>
         </div>
         <Segmented<Mode>
           value={mode}
@@ -307,7 +305,6 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
                 {feed.clock === "sim" ? (
                   <>
                     <span className="num text-foreground">{fmtClock(feed.t)}</span> after the storm began ·{" "}
-                    {feed.drainDown && <span className="text-water-deep">fast-forwarding the drain-down (outlet only) · </span>}
                     {feed.emptyAt != null
                       ? `emptied ${fmtDuration(feed.emptyAt - KAPAR_2023.durationMin * 60)} after the rain`
                       : feed.level > 0.01
@@ -317,7 +314,7 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
                         : "dry"}
                   </>
                 ) : (
-                  <>Sensor reads dry. Level updates every 2 s (simulated sensor; the forecast and warnings are live from MET Malaysia).</>
+                  <>Sensor reads dry.</>
                 )}
               </div>
             </>
@@ -332,7 +329,6 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
             <div className="flex items-center gap-2 font-display text-base font-semibold">
               <BellRing className="size-4 text-primary" /> Alerts
             </div>
-            <Label className="!text-[9px]">in-app · no SMS</Label>
           </div>
           <div className="min-h-[220px] flex-1 space-y-2 overflow-y-auto pr-1 scroll-thin lg:max-h-[420px]">
             <AnimatePresence initial={false}>
@@ -364,14 +360,14 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
                 </motion.div>
               ))}
             </AnimatePresence>
-            {!feed?.alerts.length && <div className="grid h-40 place-items-center text-center text-[11px] text-muted-foreground">No alerts. Court closing, 80% full, open-again and clog warnings appear here as they fire.</div>}
+            {!feed?.alerts.length && <div className="grid h-40 place-items-center text-center text-[11px] text-muted-foreground">No alerts.</div>}
           </div>
           <div className="mt-3 space-y-2 border-t border-border pt-3">
             <Toggle
               checked={mode === "linked" ? storeClog > 0 : clog}
               onChange={(v) => (mode === "linked" && embedded ? setParams({ clog: v ? 0.85 : 0 }) : setClog(v))}
-              label="Simulate a clogged outlet"
-              hint={mode === "linked" && !embedded ? "Change it in the simulator tab." : "Blocks 85% of the outlet pipe to test the clog warning."}
+              label="Clogged outlet"
+              hint="85% of the outlet pipe blocked."
             />
             {mode === "replay" && (
               <PaperButton onClick={restartReplay} className="group">
@@ -390,7 +386,7 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
       </div>
       {!embedded && (
         <p className="mt-6 text-center text-[10px] text-muted-foreground">
-          Sponge Township · SDP University Hackathon 2026 · Weather: MET Malaysia via data.gov.my (CC BY 4.0) · Level sensor simulated in this prototype
+          Weather: MET Malaysia via data.gov.my (CC BY 4.0)
         </p>
       )}
     </div>
@@ -403,10 +399,7 @@ function EmptyLinked({ onReplay, embedded }: { onReplay: () => void; embedded: b
     <div className="grid h-64 place-items-center text-center">
       <div className="max-w-xs">
         <Mascot mood="sleepy" size={64} className="mx-auto mb-2" />
-        <div className="font-display text-base font-semibold text-foreground">Not linked to a storm yet</div>
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          Place a water square and run a storm in the simulator — this gauge fills from the simulation as it runs{embedded ? "" : " (open the simulator in another tab on this device)"}.
-        </p>
+        <div className="font-display text-base font-semibold text-foreground">No storm running</div>
         <div className="mt-3 flex justify-center gap-2">
           {embedded && (
             <InkButton onClick={() => setPhase({ phase: "design" })} className="px-3 py-1.5 text-xs">
@@ -435,10 +428,10 @@ function WeatherCard({ w, err }: { w: WeatherPayload | null; err: boolean }) {
     <Panel className="p-4">
       <div className="flex items-center justify-between">
         <div className="font-display text-base font-semibold">Klang weather</div>
-        <Label className="!text-[9px]">MET Malaysia{w?.source === "cached" ? " · cached" : ""}</Label>
+        <Label className="!text-[9px]">MET Malaysia</Label>
       </div>
       {!w && !err && <div className="mt-3 h-24 animate-pulse rounded-xl bg-muted" />}
-      {err && !w?.days.length && <div className="mt-3 text-[11px] text-muted-foreground">MET Malaysia&apos;s API is not answering right now. Alerts still run on the level sensor.</div>}
+      {err && !w?.days.length && <div className="mt-3 text-[11px] text-muted-foreground">Forecast unavailable.</div>}
       {w && w.days.length > 0 && (
         <>
           <div className={cn("mt-2 rounded-xl border px-3 py-2 text-[11px] font-medium", w.heavyExpected ? "border-[#ecd98a] bg-sun-soft text-foreground" : "border-ok/25 bg-mint/70 text-ok")}>
@@ -523,7 +516,6 @@ function QRCard() {
           <QrCode className="size-4 text-primary" /> On your phone
 
         </div>
-        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">Scan to open the resident dashboard. It replays the 2023 storm and shows live Klang weather.</p>
         <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground">{url}</div>
       </div>
     </Panel>

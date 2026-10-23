@@ -219,7 +219,6 @@ export async function buildScene(area: Area, onProgress: Progress = () => {}): P
   }
 
   // Houses missing from OpenStreetMap, read from the satellite image
-  const nOsm = buildings.length;
   // dominant street direction (circular mean of 4θ, so 0°/90° agree)
   let c4 = 0;
   let s4 = 0;
@@ -244,7 +243,6 @@ export async function buildScene(area: Area, onProgress: Progress = () => {}): P
     }
     buildings.push({ id, ring: h.ring, height: h.height, base: zs / h.cells.length, kind: "house", roof: h.roof, cells: h.cells.length, detected: true, ridgeEdge: 0 });
   }
-  if (houses.length) warnings.push(`${nOsm} buildings from OpenStreetMap + ${houses.length} houses read from the satellite image.`);
 
   // ── Street-level detail the 30 m DEM cannot see ──────────────────────────────────────────
   // House platforms sit above the road crown; roads carry the water; drains are sunk channels;

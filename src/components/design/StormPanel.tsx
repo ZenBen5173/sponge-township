@@ -28,7 +28,6 @@ export function StormPanel() {
   const setStorm = useApp((s) => s.setStorm);
   const setParams = useApp((s) => s.setParams);
   const [adv, setAdv] = useState(false);
-  const solver = useApp((s) => s.solver);
   const eng = getEngine();
   const busy = run.status === "running" || run.status === "starting" || run.status === "paused";
   const base = finals.base ?? stats.base;
@@ -97,14 +96,11 @@ export function StormPanel() {
         </AnimatePresence>
 
         {!busy ? (
-          <div className="space-y-1.5">
+          <div>
             <InkButton onClick={() => eng.startRun()} className="group w-full py-3 text-[15px]">
               <CloudRain className="size-[18px] transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" strokeWidth={2} />
               {run.status === "done" ? "Run again" : "Run storm"}
             </InkButton>
-            <div className="text-center text-[10px] text-muted-foreground">
-              {features.length ? "Runs without and with your design on the same storm." : "No features yet — runs the town as it is today."}
-            </div>
           </div>
         ) : (
           <div className="space-y-2 rounded-xl border-[1.5px] border-foreground bg-card p-2.5 shadow-[3px_3px_0_0_var(--water)]">
@@ -121,12 +117,7 @@ export function StormPanel() {
               </button>
               <div className="flex-1 text-right">
                 <div className="num text-xl font-bold leading-none text-foreground">{fmtClock(run.t)}</div>
-                <div className="text-[10px] text-muted-foreground">of {fmtClock(run.tEnd)} simulated</div>
-                {solver && (
-                  <div className={cn("label mt-1 inline-block rounded border px-1 !text-[9px]", solver === "gpu" ? "border-water/40 bg-water-soft !text-water-deep" : "border-border bg-muted")}>
-                    {solver === "gpu" ? "WebGPU solver" : "CPU solver"}
-                  </div>
-                )}
+                <div className="text-[10px] text-muted-foreground">of {fmtClock(run.tEnd)}</div>
               </div>
             </div>
             <div className="h-1 overflow-hidden rounded-full bg-sand">
@@ -213,7 +204,6 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
               </span>
             </div>
           ))}
-          {!done && <div className="mt-0.5 text-[9px] text-muted-foreground">right now · worst moment shown when the run ends</div>}
         </div>
       )}
       {rows.map((r) => (

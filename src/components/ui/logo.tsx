@@ -14,7 +14,6 @@ export function Logo() {
       </div>
       <div className="leading-tight">
         <div className="font-display text-[15px] font-bold tracking-tight text-foreground">Sponge Township</div>
-        <div className="whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">flood simulator · SDP 2026</div>
       </div>
     </div>
   );

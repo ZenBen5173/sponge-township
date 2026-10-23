@@ -1,6 +1,6 @@
 "use client";
 import { Droplets, Footprints, Grid2x2, MousePointer2, Route, Sprout, Trash2, Waves, Wand2 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { Label, Panel, Slider } from "@/components/ui/primitives";
 import { getEngine } from "@/lib/engine";
@@ -136,14 +136,12 @@ export function DesignPanel() {
     fs.push(pw);
     s.set({ features: [...s.features, ...fs], selectedId: sq.id, tool: "select", run: { ...s.run, designDirty: true } });
     getEngine().scene3d?.focus(c.bx, c.by, 200);
-    s.flash(`Suggested layout: a ${sq.w}×${sq.l} m square, ${nd} street gutters feeding it, a rain garden and a permeable walk.`);
   };
 
   return (
     <Panel className="flex max-h-full flex-col p-3">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <Label tone="tomato">Step 2 · Design</Label>
           <div className="font-display text-xl font-semibold leading-tight">Make it a sponge</div>
         </div>
       </div>
@@ -153,7 +151,7 @@ export function DesignPanel() {
           <button
             key={t.id}
             onClick={() => set({ tool: t.id, drawing: null })}
-            title={`${t.label} (${t.key})`}
+            title={`${t.label} (${t.key}) — ${HINT[t.id]}`}
             className={cn(
               "group relative flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[10px] font-medium transition-all duration-150",
               tool === t.id
@@ -167,20 +165,7 @@ export function DesignPanel() {
           </button>
         ))}
       </div>
-      <AnimatePresence mode="wait">
-        <motion.p
-          key={tool}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.18 }}
-          className="mt-2 min-h-[30px] text-[11px] leading-snug text-muted-foreground"
-        >
-          {HINT[tool]}
-        </motion.p>
-      </AnimatePresence>
-
-      <div className="mt-1 min-h-0 flex-1 overflow-y-auto pr-1 scroll-thin">
+      <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1 scroll-thin">
         {sel ? (
           <Inspector f={sel} />
         ) : (
@@ -191,7 +176,7 @@ export function DesignPanel() {
                 {showCandidates ? "Hide" : "Show"}
               </button>
             </div>
-            {!scene?.candidates.length && <div className="mt-2 text-[11px] text-muted-foreground">No open land over 900 m² here. Try a bigger area.</div>}
+            {!scene?.candidates.length && <div className="mt-2 text-[11px] text-muted-foreground">No open land over 900 m² here.</div>}
             <div className="mt-1.5 space-y-1.5">
               {scene?.candidates.map((c, k) => (
                 <motion.button
@@ -247,14 +232,10 @@ export function DesignPanel() {
                 <Wand2 className="size-3.5 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" /> Suggest a layout at {scene.candidates[active]?.label}
               </button>
             )}
-            <p className="mt-2 text-[10px] leading-snug text-muted-foreground">
-              {scene?.candidates.some((c) => c.floodedNear !== undefined) ? "Flood risk from your last run. " : "Run the storm once to see flood risk around each site. "}
-              Found from OpenStreetMap land use plus green pixels in the satellite image. Ranked by whether a 40 × 30 m court fits, how much ground drains to it, how low it sits and homes nearby. Check ownership with SDP before use.
-            </p>
 
             {features.length > 0 && (
               <>
-                <Label tone="ink" className="mt-3">Your design</Label>
+                <Label tone="ink" className="mt-4">Your design</Label>
                 <div className="mt-1 space-y-1">
                   {features.map((f) => (
                     <button
@@ -357,7 +338,8 @@ function Inspector({ f }: { f: Feature }) {
           max={20}
           onChange={(v) => update(f.id, { capacityPerM: v / 1000 })}
           format={(v) => `${v} L/s/m`}
-          hint={`Total ≈ ${Math.round(f.capacityPerM * 1000 * f.pts.slice(1).reduce((a, p, k) => a + Math.hypot(p[0] - f.pts[k][0], p[1] - f.pts[k][1]), 0))} L/s. Blue = feeds a square.`}
+          hint={`Total ≈ ${Math.round(f.capacityPerM * 1000 * f.pts.slice(1).reduce((a, p, k) => a + Math.hypot(p[0] - f.pts[k][0], p[1] - f.pts[k][1]), 0))} L/s`}
+
         />
       )}
       {f.kind === "inlet" && <Slider label="Capacity" value={Math.round(f.capacity * 1000)} min={20} max={300} step={10} onChange={(v) => update(f.id, { capacity: v / 1000 })} format={(v) => `${v} L/s`} />}
@@ -365,9 +347,6 @@ function Inspector({ f }: { f: Feature }) {
 
         Done
       </button>
-      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-        <Waves className="size-3" /> Changes apply on the next run.
-      </div>
     </motion.div>
   );
 }
