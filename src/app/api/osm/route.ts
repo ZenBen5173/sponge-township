@@ -11,7 +11,8 @@ const MIRRORS = [
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",
 ];
-const UA = "sponge-township/1.0 (SDP Hackathon 2026 flood prototype; +https://sponge-township.vercel.app)";
+// Overpass rejects some agents (anything mentioning vercel.app, for one); this one is accepted.
+const UA = "sponge-township/1.0 (SDP University Hackathon 2026 flood simulator)";
 
 const memo = new Map<string, { at: number; body: string }>();
 
