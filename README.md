@@ -8,7 +8,9 @@ Bandar Bukit Raja floods several times a year. *Sponge Township* proposes **wate
 skate courts on idle land that store floodwater in a storm and drain slowly afterwards — supported by gutters,
 rain gardens, permeable walkways and a level sensor that warns residents. This app is the proof:
 
-1. **Pick an area** anywhere (search or drag/draw a box, 250 m – 2 km a side). It loads that area's elevation,
+1. **Pick an area:** choose one of 20 Sime Darby Property townships from a searchable list (Bandar Bukit Raja,
+   City of Elmina, Serenia City, Nilai Impian, Bandar Ainsdale, KL East and more), search any other place, or
+   drag/draw a box (250 m – 2 km a side). It loads that area's elevation,
    satellite image, buildings, roads and open land and builds a 3D model.
 2. **Design and simulate.** It finds open land that could become a water square, lets you place and edit
    features, and runs real 2-D flood physics for the same storm *without* and *with* your design, side by side.

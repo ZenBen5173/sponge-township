@@ -1,7 +1,7 @@
 "use client";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource } from "maplibre-gl";
-import { ArrowRight, Crosshair, Loader2, MapPin, Search, SquareDashedMousePointer } from "lucide-react";
+import { ArrowRight, Building2, ChevronDown, Crosshair, Loader2, MapPin, Search, SquareDashedMousePointer } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, Slider } from "@/components/ui/primitives";
@@ -10,7 +10,10 @@ import { gridFor } from "@/lib/data/scene";
 import { type Area, areaBBox, CASIRA, fmtLatLon, mPerDegLat, mPerDegLon } from "@/lib/geo";
 import { EASE } from "@/lib/motion";
 import { useApp } from "@/lib/store";
+import { searchTownships, type Township } from "@/lib/townships";
 import { cn } from "@/lib/utils";
+
+type Option = { kind: "sdp"; t: Township } | { kind: "place"; h: Hit };
 
 interface Hit {
   name: string;
@@ -71,6 +74,17 @@ export function AreaPicker() {
   const [hits, setHits] = useState<Hit[]>([]);
   const [searching, setSearching] = useState(false);
   const [hl, setHl] = useState(0);
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  // close the list on a click outside it
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("pointerdown", onDown);
+    return () => window.removeEventListener("pointerdown", onDown);
+  }, []);
   const [hover, setHover] = useState(false);
 
   const setArea = useCallback((a: Area) => {
@@ -162,7 +176,7 @@ export function AreaPicker() {
     };
   }, [setArea]);
 
-  // search (Photon, OpenStreetMap-based, biased to Klang)
+  // search: Sime Darby Property townships first (filtered as you type), then places from Photon
   useEffect(() => {
     if (q.trim().length < 3) return;
     const ctl = new AbortController();
@@ -179,7 +193,6 @@ export function AreaPicker() {
             lat: f.geometry.coordinates[1],
           })),
         );
-        setHl(0);
       } catch {
         /* aborted or offline */
       } finally {
@@ -192,11 +205,30 @@ export function AreaPicker() {
     };
   }, [q]);
 
-  const go = (h: Hit) => {
-    setArea({ ...areaRef.current, lat: h.lat, lon: h.lon, label: `${h.name}${h.detail ? `, ${h.detail}` : ""}` });
-    map.current?.flyTo({ center: [h.lon, h.lat], zoom: 15.6, duration: 1400, essential: true });
-    setHits([]);
-    setQ(h.name);
+  const towns = searchTownships(q);
+  const options: Option[] = [
+    ...towns.map((t) => ({ kind: "sdp" as const, t })),
+    ...(q.trim().length >= 3 ? hits : []).map((h) => ({ kind: "place" as const, h })),
+  ];
+
+  const fly = (lat: number, lon: number, size: number) => {
+    const zoom = 15.6 - Math.log2(Math.max(1, size / 500));
+    map.current?.flyTo({ center: [lon, lat], zoom, duration: 1400, essential: true });
+  };
+  const choose = (o: Option) => {
+    if (o.kind === "sdp") {
+      const t = o.t;
+      setArea({ lat: t.lat, lon: t.lon, size: t.size, label: `${t.name}, ${t.town}, ${t.state}` });
+      fly(t.lat, t.lon, t.size);
+      setQ(t.name);
+    } else {
+      const h = o.h;
+      setArea({ ...areaRef.current, lat: h.lat, lon: h.lon, label: `${h.name}${h.detail ? `, ${h.detail}` : ""}` });
+      fly(h.lat, h.lon, areaRef.current.size);
+      setQ(h.name);
+    }
+    setOpen(false);
+    inputRef.current?.blur();
   };
 
   const g = gridFor(area.size);
@@ -215,57 +247,110 @@ export function AreaPicker() {
         transition={{ duration: 0.6, ease: EASE.expressive }}
         className="absolute left-3 top-3 w-[min(380px,calc(100%-24px))] sm:left-5 sm:top-5"
       >
-        <Panel className="p-4">
+        <Panel className="overflow-visible p-4">
           <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-primary">Step 1 · Pick an area</div>
           <h2 className="font-display text-[26px] leading-[1.05] text-foreground">
             Where does the water <em className="text-primary">go?</em>
           </h2>
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-            Search a place or drag the box. We load the area&apos;s terrain, satellite view, buildings and roads, then let it rain.
+            Pick a Sime Darby township, search any place, or drag the box. We load the terrain, satellite view, buildings and roads, then let it rain.
           </p>
 
-          <div className="relative mt-3">
+          <div ref={boxRef} className="relative mt-3">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
+              ref={inputRef}
               value={q}
+              onFocus={() => {
+                setOpen(true);
+                setHl(0);
+              }}
               onChange={(e) => {
                 setQ(e.target.value);
+                setOpen(true);
+                setHl(0);
                 if (e.target.value.trim().length < 3) setHits([]);
               }}
               onKeyDown={(e) => {
-                if (e.key === "ArrowDown") setHl((h) => Math.min(hits.length - 1, h + 1));
-                else if (e.key === "ArrowUp") setHl((h) => Math.max(0, h - 1));
-                else if (e.key === "Enter" && hits[hl]) go(hits[hl]);
-                else if (e.key === "Escape") setHits([]);
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setOpen(true);
+                  setHl((h) => Math.min(options.length - 1, h + 1));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setHl((h) => Math.max(0, h - 1));
+                } else if (e.key === "Enter" && options[hl]) choose(options[hl]);
+                else if (e.key === "Escape") setOpen(false);
               }}
-              placeholder="Search an address or place…"
+              placeholder="Search Sime Darby townships or any place…"
               className="h-10 w-full rounded-xl border border-border bg-black/40 pl-9 pr-9 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/60 focus:bg-black/60"
             />
-            {searching && <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+            {searching ? (
+              <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen((o) => !o);
+                  inputRef.current?.focus();
+                }}
+                title="Sime Darby Property townships"
+                className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-primary"
+              >
+                <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
+              </button>
+            )}
             <AnimatePresence>
-              {hits.length > 0 && (
-                <motion.ul
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  className="glass absolute left-0 right-0 top-12 z-20 max-h-64 overflow-auto rounded-xl p-1 scroll-thin"
+              {open && options.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.18, ease: EASE.expressive }}
+                  className="absolute left-0 right-0 top-12 z-30 max-h-[min(440px,60vh)] origin-top overflow-auto rounded-xl border border-border-strong bg-card-solid p-1 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85)] scroll-thin"
                 >
-                  {hits.map((h, k) => (
-                    <motion.li key={`${h.lat}${h.lon}${k}`} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: k * 0.03 }}>
-                      <button
-                        onMouseEnter={() => setHl(k)}
-                        onClick={() => go(h)}
-                        className={cn("flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors", k === hl ? "bg-primary/12" : "")}
-                      >
-                        <MapPin className={cn("mt-0.5 size-3.5 shrink-0", k === hl ? "text-primary" : "text-muted-foreground")} />
-                        <span className="min-w-0">
-                          <span className="block truncate text-xs text-foreground">{h.name}</span>
-                          <span className="block truncate text-[10px] text-muted-foreground">{h.detail}</span>
-                        </span>
-                      </button>
-                    </motion.li>
-                  ))}
-                </motion.ul>
+                  {options.map((o, k) => {
+                    const prev = options[k - 1];
+                    // section headers: one for SDP (with regions when browsing), one for other places
+                    let header: string | null = null;
+                    if (o.kind === "sdp") {
+                      if (k === 0) header = `Sime Darby Property · ${towns.length} townships`;
+                      if (!q.trim() && (!prev || prev.kind !== "sdp" || prev.t.region !== o.t.region)) header = header ? `${header} — ${o.t.region}` : o.t.region;
+                    } else if (!prev || prev.kind !== "place") header = "Other places";
+                    return (
+                      <div key={o.kind === "sdp" ? o.t.id : `${o.h.lat}${o.h.lon}${k}`}>
+                        {header && (
+                          <div className={cn("px-2.5 pb-1 pt-2 text-[9px] uppercase tracking-[0.16em]", k === 0 || o.kind === "place" ? "text-primary" : "text-muted-foreground/70")}>
+                            {header}
+                          </div>
+                        )}
+                        <motion.button
+                          type="button"
+                          initial={{ opacity: 0, x: -6 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: Math.min(k, 12) * 0.02 }}
+                          onMouseEnter={() => setHl(k)}
+                          onClick={() => choose(o)}
+                          className={cn("group flex w-full items-start gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors", k === hl ? "bg-primary/12" : "")}
+                        >
+                          {o.kind === "sdp" ? (
+                            <Building2 className={cn("mt-0.5 size-3.5 shrink-0 transition-colors", k === hl ? "text-primary" : "text-muted-foreground")} />
+                          ) : (
+                            <MapPin className={cn("mt-0.5 size-3.5 shrink-0 transition-colors", k === hl ? "text-primary" : "text-muted-foreground")} />
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-xs text-foreground">{o.kind === "sdp" ? o.t.name : o.h.name}</span>
+                            <span className="block truncate text-[10px] text-muted-foreground">{o.kind === "sdp" ? `${o.t.town}, ${o.t.state}` : o.h.detail}</span>
+                          </span>
+                          {o.kind === "sdp" && o.t.note && (
+                            <span className="mt-0.5 shrink-0 rounded bg-primary/10 px-1.5 py-px text-[9px] text-primary">{o.t.note.split(" · ")[0]}</span>
+                          )}
+                          <ArrowRight className={cn("mt-1 size-3 shrink-0 text-primary transition-all", k === hl ? "translate-x-0 opacity-100" : "-translate-x-1 opacity-0")} />
+                        </motion.button>
+                      </div>
+                    );
+                  })}
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
@@ -274,7 +359,8 @@ export function AreaPicker() {
             <button
               onClick={() => {
                 setArea({ ...CASIRA });
-                map.current?.flyTo({ center: [CASIRA.lon, CASIRA.lat], zoom: 15.6, duration: 1200 });
+                fly(CASIRA.lat, CASIRA.lon, CASIRA.size);
+                setQ("");
               }}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-black/30 px-2 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
             >

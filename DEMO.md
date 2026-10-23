@@ -6,7 +6,7 @@ Narration is in *italics*; clicks are in **bold**. Times are approximate — tri
 
 | Time | Click | Say / show |
 | --- | --- | --- |
-| 0:00 | Page opens on **Pick area**, Casira box already drawn on the satellite map | *"Bandar Bukit Raja floods three or more times a year. This is Casira. Any area works — search or draw a box."* (optionally type a place in the search box, then click **Casira (default)** to come back) |
+| 0:00 | Page opens on **Pick area**, Casira box already drawn on the satellite map | *"Bandar Bukit Raja floods three or more times a year. This is Casira. Any area works — search or draw a box."* (optionally click the search box to show the list of 20 Sime Darby townships, then pick **Bandar Bukit Raja · Casira**) |
 | 0:06 | **Build 3D scene** | Loader traces a curve while terrain, imagery, roads and ~500 houses load (≈ 4 s). *"Real terrain, real streets — and houses read from the satellite image where the map has none."* |
 | 0:12 | Drag to orbit once | Glowing outlines = **open space found** (Site A, B…). |
 | 0:16 | **Run storm** (Kapar 2023 preset, high tide on). Speed **Max** | Rain streaks, water spreading along the streets, houses turning red as water reaches the door. *"The 4 June 2023 Kapar storm — 98.5 mm in three hours."* (≈ 13 s on WebGPU) |
