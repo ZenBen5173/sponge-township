@@ -34,6 +34,8 @@ export function DesignPanel() {
     const c = s.scene?.candidates[s.activeCandidate];
     if (!c || !s.scene) return;
     const sq = makeRect("square", c.bx, c.by, s.features, c);
+    // a smaller outlet holds the storm's peak; the court drains over the following hours
+    sq.outletD = 0.12;
     if (c.courtW && c.courtW < 40) {
       // a tighter site: a smaller, deeper court keeps most of the storage
       sq.w = c.courtW;
@@ -114,7 +116,7 @@ export function DesignPanel() {
       for (const dir of [1, -1] as const) {
         const run = walk(rd.r.pts, rd.k, rd.t, dir, 55);
         if (run.length < 2 || Math.hypot(run[0][0] - run[run.length - 1][0], run[0][1] - run[run.length - 1][1]) < 15) continue;
-        fs.push({ id: newId("dr"), kind: "drain", name: `Gutter ${++nd}`, pts: [...run, edge(rd.p)], capacityPerM: 0.006 });
+        fs.push({ id: newId("dr"), kind: "drain", name: `Gutter ${++nd}`, pts: [...run, edge(rd.p)], capacityPerM: 0.018 }); // grated trench drain
         if (nd >= 4) break;
       }
     }
