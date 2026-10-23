@@ -1,26 +1,191 @@
 @import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
+/* Sponge Township — a dark "storm instrument" palette. Semantic names follow shadcn so library components drop in. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #070b10;
+  --foreground: #e8eef3;
+  --card: rgba(13, 20, 28, 0.78);
+  --card-solid: #0d141c;
+  --muted: #121b25;
+  --muted-foreground: #8a9aab;
+  --border: rgba(148, 178, 204, 0.14);
+  --border-strong: rgba(148, 178, 204, 0.28);
+  --primary: #5eead4; /* lagoon */
+  --primary-foreground: #04201c;
+  --water: #38bdf8;
+  --water-deep: #1d4ed8;
+  --warn: #fbbf24;
+  --danger: #fb6a4a;
+  --ok: #4ade80;
+  --sky-top: #1b2b3a;
+  --sky-bottom: #6d8799;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-water: var(--water);
+  --color-water-deep: var(--water-deep);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html,
+body {
+  height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(94, 234, 212, 0.3);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(16, 25, 35, 0.86), rgba(9, 15, 22, 0.82));
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 48px -24px rgba(0, 0, 0, 0.7);
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 178, 204, 0.25) transparent;
+}
+
+/* range inputs */
+input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+}
+input[type="range"].slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9px;
+  background: linear-gradient(90deg, var(--primary) var(--fill, 50%), rgba(148, 178, 204, 0.2) var(--fill, 50%));
+}
+input[type="range"].slider::-moz-range-track {
+  height: 4px;
+  border-radius: 9px;
+  background: rgba(148, 178, 204, 0.2);
+}
+input[type="range"].slider::-moz-range-progress {
+  height: 4px;
+  border-radius: 9px;
+  background: var(--primary);
+}
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  margin-top: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e8fffb;
+  border: 3px solid var(--primary);
+  box-shadow: 0 0 0 4px rgba(94, 234, 212, 0.15);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+input[type="range"].slider:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 7px rgba(94, 234, 212, 0.18);
+}
+input[type="range"].slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e8fffb;
+  border: 3px solid var(--primary);
+}
+
+@keyframes curve-trace {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes shimmer-x {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes ping-soft {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* MapLibre chrome to match */
+.maplibregl-ctrl-attrib {
+  background: rgba(7, 11, 16, 0.7) !important;
+  color: #8a9aab !important;
+  font-size: 10px !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: #b9c7d4 !important;
+}
+.maplibregl-ctrl-group {
+  background: rgba(13, 20, 28, 0.9) !important;
+  border: 1px solid var(--border) !important;
+}
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(0.9);
 }
