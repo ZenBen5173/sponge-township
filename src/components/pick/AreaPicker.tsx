@@ -4,7 +4,7 @@ import type { GeoJSONSource } from "maplibre-gl";
 import { ArrowRight, Building2, ChevronDown, Crosshair, Loader2, MapPin, Search, SquareDashedMousePointer } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { InkButton, Label, Panel, Slider } from "@/components/ui/primitives";
+import { InkButton, Panel, Slider } from "@/components/ui/primitives";
 
 import { getEngine } from "@/lib/engine";
 import { gridFor } from "@/lib/data/scene";
@@ -248,10 +248,7 @@ export function AreaPicker() {
         className="absolute left-3 top-3 w-[min(380px,calc(100%-24px))] sm:left-5 sm:top-5"
       >
         <Panel className="overflow-visible p-4">
-          <h2 className="font-display text-[27px] font-bold leading-[1.02] tracking-tight text-foreground">Where does the water go?</h2>
-          <div className="mt-1 font-hand text-[19px] leading-none text-primary">Casira went under on 4 June 2023</div>
-
-          <div ref={boxRef} className="relative mt-3">
+          <div ref={boxRef} className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               ref={inputRef}
@@ -277,7 +274,7 @@ export function AreaPicker() {
                 } else if (e.key === "Enter" && options[hl]) choose(options[hl]);
                 else if (e.key === "Escape") setOpen(false);
               }}
-              placeholder="Search Sime Darby townships or any place…"
+              placeholder="Search"
               className="h-10 w-full rounded-xl border-[1.5px] border-border bg-card pl-9 pr-9 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/80 focus:border-foreground focus:shadow-[3px_3px_0_0_var(--foreground)]"
             />
             {searching ? (
@@ -306,12 +303,9 @@ export function AreaPicker() {
                 >
                   {options.map((o, k) => {
                     const prev = options[k - 1];
-                    // section headers: one for SDP (with regions when browsing), one for other places
+                    // region headers while browsing the township list
                     let header: string | null = null;
-                    if (o.kind === "sdp") {
-                      if (k === 0) header = `Sime Darby Property · ${towns.length} townships`;
-                      if (!q.trim() && (!prev || prev.kind !== "sdp" || prev.t.region !== o.t.region)) header = header ? `${header} — ${o.t.region}` : o.t.region;
-                    } else if (!prev || prev.kind !== "place") header = "Other places";
+                    if (o.kind === "sdp" && !q.trim() && (!prev || prev.kind !== "sdp" || prev.t.region !== o.t.region)) header = o.t.region;
                     return (
                       <div key={o.kind === "sdp" ? o.t.id : `${o.h.lat}${o.h.lon}${k}`}>
                         {header && (
@@ -337,9 +331,6 @@ export function AreaPicker() {
                             <span className="block truncate text-xs font-medium text-foreground">{o.kind === "sdp" ? o.t.name : o.h.name}</span>
                             <span className="block truncate text-[10px] text-muted-foreground">{o.kind === "sdp" ? `${o.t.town}, ${o.t.state}` : o.h.detail}</span>
                           </span>
-                          {o.kind === "sdp" && o.t.note && (
-                            <span className="mt-0.5 shrink-0 rounded border border-foreground bg-sun px-1.5 py-px font-mono text-[9px] uppercase tracking-wider text-foreground">{o.t.note.split(" · ")[0]}</span>
-                          )}
                           <ArrowRight className={cn("mt-1 size-3 shrink-0 text-primary transition-all", k === hl ? "translate-x-0 opacity-100" : "-translate-x-1 opacity-0")} />
                         </motion.button>
                       </div>
@@ -359,7 +350,7 @@ export function AreaPicker() {
               }}
               className="lift flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 text-[11px] text-foreground"
             >
-              <Crosshair className="size-3.5" /> Casira (default)
+              <Crosshair className="size-3.5" /> Casira
             </button>
             <button
               onClick={() => setDrawMode((d) => !d)}
@@ -368,20 +359,19 @@ export function AreaPicker() {
                 drawMode ? "inked bg-sun-soft text-foreground" : "border-border bg-card text-foreground",
               )}
             >
-              <SquareDashedMousePointer className="size-3.5" /> {drawMode ? "Drag on the map…" : "Draw a box"}
+              <SquareDashedMousePointer className="size-3.5" /> Draw a box
             </button>
           </div>
 
           <div className="mt-4">
             <Slider
-              label="Area size (side)"
+              label="Size"
               value={area.size}
               min={250}
               max={2000}
               step={10}
               onChange={(v) => setArea({ ...areaRef.current, size: v })}
               format={(v) => (v >= 1000 ? `${(v / 1000).toFixed(2)} km` : `${v} m`)}
-              hint={`${(area.size * area.size / 1e4).toFixed(1)} ha`}
             />
           </div>
 
@@ -389,9 +379,9 @@ export function AreaPicker() {
           <div className="mt-3 rounded-xl border border-border bg-background/60">
             <div className="flex items-start justify-between gap-2 px-3 pb-2 pt-2.5">
               <div className="min-w-0">
-                <Label>Survey area</Label>
-                <div className="mt-0.5 truncate font-display text-sm font-semibold text-foreground">{area.label?.split(",")[0] ?? "Custom area"}</div>
-                <div className="truncate text-[10px] text-muted-foreground">{area.label?.split(",").slice(1).join(",").trim() || "Drawn on the map"}</div>
+                <div className="truncate font-display text-sm font-semibold text-foreground">{area.label?.split(",")[0] ?? "Custom area"}</div>
+                <div className="truncate text-[10px] text-muted-foreground">{area.label?.split(",").slice(1).join(",").trim()}
+</div>
               </div>
               <span className="num shrink-0 rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] text-muted-foreground">
                 {area.size >= 1000 ? `${(area.size / 1000).toFixed(1)} km` : `${area.size} m`} sq

@@ -15,7 +15,6 @@ export function Viewport() {
   const [, frame] = useReducer((n: number) => (n + 1) % 1e9, 0);
   const scene = useApp((s) => s.scene);
   const status = useApp((s) => s.sceneStatus);
-  const loadLabel = useApp((s) => s.loadLabel);
   const loadProgress = useApp((s) => s.loadProgress);
   const sceneError = useApp((s) => s.sceneError);
   const tool = useApp((s) => s.tool);
@@ -354,11 +353,6 @@ export function Viewport() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 grid place-items-center bg-background">
             <div className="flex flex-col items-center gap-4 text-center">
               <MathCurveLoader curve="hypotrochoid" size={72} speed={2.4} className="text-primary" label="Building the scene" />
-              <div>
-                <div className="label !text-primary">Surveying</div>
-                <div className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground">Building the town</div>
-                <div className="mt-1 font-mono text-[11px] text-muted-foreground">{loadLabel}</div>
-              </div>
               <div className="h-2.5 w-60 overflow-hidden rounded-full border-[1.5px] border-foreground bg-card">
                 <motion.div className="h-full bg-primary" animate={{ width: `${Math.round(loadProgress * 100)}%` }} />
               </div>
@@ -430,7 +424,6 @@ function RectHandles({
 
 function SplitDivider({ split }: { split: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const place = useApp((s) => s.area.label?.split(/[,·]/)[0].trim() || "The town");
 
   return (
     <div ref={ref} className="absolute inset-0">
@@ -458,10 +451,10 @@ function SplitDivider({ split }: { split: number }) {
       </div>
       {/* tags hug the divider so the side panels never cover them */}
       <div className="absolute top-3 -translate-x-full whitespace-nowrap rounded-md border-[1.5px] border-foreground bg-card px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-foreground shadow-[2px_2px_0_0_var(--foreground)]" style={{ left: `calc(${split * 100}% - 10px)` }}>
-        ← {place} today
+        ← Without
       </div>
       <div className="absolute top-3 whitespace-nowrap rounded-md border-[1.5px] border-foreground bg-primary px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-white shadow-[2px_2px_0_0_var(--foreground)]" style={{ left: `calc(${split * 100}% + 10px)` }}>
-        With the sponge design →
+        With →
       </div>
     </div>
   );

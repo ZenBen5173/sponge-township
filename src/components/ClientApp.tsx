@@ -8,7 +8,6 @@ const App = dynamic(() => import("./App"), {
     <div className="grid h-dvh place-items-center bg-background">
       <div className="flex flex-col items-center gap-3">
         <div className="size-10 animate-bounce rounded-xl border-[1.5px] border-foreground bg-sun shadow-[3px_3px_0_0_var(--foreground)]" />
-        <div className="label">Loading Sponge Township…</div>
       </div>
     </div>
   ),

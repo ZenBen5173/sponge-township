@@ -1,5 +1,5 @@
 "use client";
-import { Eye, Layers, Mountain, Sparkles } from "lucide-react";
+import { Eye, Layers, MapPin, Mountain, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { fmtClock, Segmented } from "@/components/ui/primitives";
 import { getEngine } from "@/lib/engine";
@@ -16,6 +16,7 @@ export function Timeline() {
   const run = useApp((s) => s.run);
   const h = useApp((s) => s.history);
   const features = useApp((s) => s.features);
+  const showCandidates = useApp((s) => s.showCandidates);
   const set = useApp((s) => s.set);
   const [peak, setPeak] = useState(false);
   const hasDesign = features.length > 0;
@@ -71,6 +72,13 @@ export function Timeline() {
         >
           <Mountain className="size-3.5" />
         </button>
+        <button
+          onClick={() => set({ showCandidates: !showCandidates })}
+          className={cn("lift grid size-7 place-items-center rounded-lg border", showCandidates ? "inked bg-sun text-foreground" : "border-border bg-card text-muted-foreground hover:text-foreground")}
+          title="Open space"
+        >
+          <MapPin className="size-3.5" />
+        </button>
         {run.status === "done" && (
           <button
             onClick={() => {
@@ -112,18 +120,18 @@ export function Timeline() {
             </span>
             <span className="flex items-center gap-1">
               <span className="h-0.5 w-3 bg-primary" />
-              deepest street, without
+              without
             </span>
             {hasDesign && (
               <>
                 <span className="flex items-center gap-1">
                   <span className="h-0.5 w-3 bg-ok" />
-                  with design
+                  with
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="h-0.5 w-3 border-t border-dashed border-water-deep" />
 
-                  square level
+                  court level
                 </span>
               </>
             )}

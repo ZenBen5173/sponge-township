@@ -6,7 +6,6 @@ import { Label, Panel, Slider } from "@/components/ui/primitives";
 import { getEngine } from "@/lib/engine";
 import { FEATURE_INFO, makeRect } from "@/lib/features";
 import { EASE } from "@/lib/motion";
-import { STORE } from "@/lib/sim/model";
 import type { Feature } from "@/lib/sim/types";
 import { newId, type Tool, useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -20,21 +19,12 @@ const TOOLS: { id: Tool; icon: ReactNode; label: string; key: string }[] = [
   { id: "garden", icon: <Sprout className="size-4" />, label: "Rain garden", key: "5" },
 ];
 
-const HINT: Record<Tool, string> = {
-  select: "Click a feature to edit it, drag to move, corners to resize. Del removes.",
-  square: "Click open ground to sink a 40 × 30 m court, 1 m deep.",
-  drain: "Click points along a street; end on a water square to feed it. Double-click or Enter to finish.",
-  inlet: "Click a low spot in a street. Within 25 m of a square it pours straight in.",
-  permeable: "Click to lay a 3 × 40 m permeable walk (resize after).",
-  garden: "Click to dig a 14 × 6 m rain garden.",
-};
 
 export function DesignPanel() {
   const tool = useApp((s) => s.tool);
   const scene = useApp((s) => s.scene);
   const features = useApp((s) => s.features);
   const selectedId = useApp((s) => s.selectedId);
-  const showCandidates = useApp((s) => s.showCandidates);
   const active = useApp((s) => s.activeCandidate);
   const set = useApp((s) => s.set);
   const sel = features.find((f) => f.id === selectedId);
@@ -140,18 +130,12 @@ export function DesignPanel() {
 
   return (
     <Panel className="flex max-h-full flex-col p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <div>
-          <div className="font-display text-xl font-semibold leading-tight">Make it a sponge</div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-3 gap-1.5">
         {TOOLS.map((t) => (
           <button
             key={t.id}
             onClick={() => set({ tool: t.id, drawing: null })}
-            title={`${t.label} (${t.key}) — ${HINT[t.id]}`}
+            title={`${t.label} (${t.key})`}
             className={cn(
               "group relative flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[10px] font-medium transition-all duration-150",
               tool === t.id
@@ -170,14 +154,8 @@ export function DesignPanel() {
           <Inspector f={sel} />
         ) : (
           <>
-            <div className="mt-2 flex items-center justify-between">
-              <Label tone="ink">Open space found</Label>
-              <button onClick={() => set({ showCandidates: !showCandidates })} className="label transition-colors hover:!text-foreground">
-                {showCandidates ? "Hide" : "Show"}
-              </button>
-            </div>
-            {!scene?.candidates.length && <div className="mt-2 text-[11px] text-muted-foreground">No open land over 900 m² here.</div>}
-            <div className="mt-1.5 space-y-1.5">
+            {!scene?.candidates.length && <div className="mt-2 text-[11px] text-muted-foreground">No open land</div>}
+            <div className="mt-1 space-y-1.5">
               {scene?.candidates.map((c, k) => (
                 <motion.button
                   key={c.id}
@@ -198,27 +176,20 @@ export function DesignPanel() {
                       <span className={cn("num grid size-5 shrink-0 place-items-center rounded-md text-[10px]", k === active ? "bg-primary text-white" : "bg-muted text-foreground")}>{c.label.replace(/^Site\s*/, "")}</span>
                       <span className="truncate font-normal text-muted-foreground">{c.name ?? c.kind}</span>
                     </span>
-                    <span className="num text-[13px] font-bold text-foreground">
-                      {c.score}
-                      <span className="text-[9px] font-normal text-muted-foreground">/100</span>
-                    </span>
+                    <span className="num text-[13px] font-bold text-foreground">{c.score}</span>
                   </div>
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-sand">
                     <motion.div className={cn("h-full rounded-full", k === active ? "bg-primary" : "bg-foreground")} initial={{ width: 0 }} animate={{ width: `${c.score}%` }} transition={{ delay: 0.3 + k * 0.05, duration: 0.7 }} />
                   </div>
                   <div className="num mt-1 flex flex-wrap gap-x-2 text-[10px] text-muted-foreground">
                     <span>{Math.round(c.area).toLocaleString()} m²</span>
-                    <span>{c.relElev >= 0 ? "+" : ""}{c.relElev.toFixed(2)} m vs. area</span>
-                    <span>{(c.inflowArea / 10000).toFixed(1)} ha drains here</span>
-                    <span>{c.housesNear} homes ≤150 m</span>
-                    <span className={c.fits ? "text-ok" : c.courtW ? "text-warn" : "text-danger"}>{c.fits ? "fits 40×30" : c.courtW ? `fits ${c.courtW}×${c.courtL}` : "too tight"}</span>
+                    <span>{c.housesNear} homes</span>
+                    <span className={c.fits ? "text-ok" : c.courtW ? "text-warn" : "text-danger"}>{c.fits ? "40×30" : c.courtW ? `${c.courtW}×${c.courtL}` : "too small"}</span>
                   </div>
                   {c.floodedNear !== undefined && (
                     <div className={cn("mt-1.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium", c.floodedNear > 0 ? "bg-tomato-soft text-tomato-ink" : "bg-mint text-ok")}>
                       <Waves className="size-3" />
-                      {c.floodedNear > 0
-                        ? `${c.floodedNear} flooded homes ≤150 m · streets to ${Math.round((c.deepestNear ?? 0) * 100)} cm`
-                        : "no flooded homes nearby in that storm"}
+                      {c.floodedNear > 0 ? `${c.floodedNear} flooded · ${Math.round((c.deepestNear ?? 0) * 100)} cm` : "dry"}
                     </div>
                   )}
                 </motion.button>
@@ -229,14 +200,13 @@ export function DesignPanel() {
                 onClick={autoDesign}
                 className="group mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-foreground bg-sun-soft px-3 py-2 text-[11px] font-semibold text-foreground transition-all duration-150 hover:-translate-x-px hover:-translate-y-px hover:border-solid hover:bg-sun hover:shadow-[3px_3px_0_0_var(--foreground)]"
               >
-                <Wand2 className="size-3.5 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" /> Suggest a layout at {scene.candidates[active]?.label}
+                <Wand2 className="size-3.5 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" /> Auto layout
               </button>
             )}
 
             {features.length > 0 && (
               <>
-                <Label tone="ink" className="mt-4">Your design</Label>
-                <div className="mt-1 space-y-1">
+                <div className="mt-3 space-y-1">
                   {features.map((f) => (
                     <button
                       key={f.id}
@@ -245,7 +215,6 @@ export function DesignPanel() {
                       style={{ borderLeft: `4px solid ${FEATURE_INFO[f.kind].color}` }}
                     >
                       <span className="flex-1 truncate font-medium">{f.name}</span>
-                      <span className="label !text-[9px] transition-colors group-hover:!text-foreground">{FEATURE_INFO[f.kind].short}</span>
                     </button>
                   ))}
                 </div>
@@ -262,7 +231,6 @@ function Inspector({ f }: { f: Feature }) {
   const update = useApp((s) => s.updateFeature);
   const remove = useApp((s) => s.removeFeature);
   const set = useApp((s) => s.set);
-  const info = FEATURE_INFO[f.kind];
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-2 space-y-3">
       <div className="flex items-start justify-between gap-2">
@@ -272,11 +240,6 @@ function Inspector({ f }: { f: Feature }) {
             onChange={(e) => update(f.id, { name: e.target.value })}
             className="-mx-1 w-full rounded-md bg-transparent px-1 font-display text-base font-semibold text-foreground outline-none transition-colors hover:bg-muted focus:bg-sun-soft"
           />
-          <div className="mb-1 flex items-center gap-1.5">
-            <span className="size-2 rounded-full" style={{ background: info.color }} />
-            <Label className="!text-[9px]">{info.label}</Label>
-          </div>
-          <div className="text-[10px] leading-snug text-muted-foreground">{info.blurb}</div>
         </div>
         <button onClick={() => remove(f.id)} title="Delete (Del)" className="lift rounded-lg border border-border bg-card p-1.5 text-muted-foreground hover:border-foreground hover:text-danger">
           <Trash2 className="size-3.5" />
@@ -298,35 +261,17 @@ function Inspector({ f }: { f: Feature }) {
                 step={25}
                 onChange={(v) => update(f.id, { outletD: v / 1000 })}
                 format={(v) => `Ø ${v} mm`}
-                hint="Smaller pipe = holds water longer, empties slower."
               />
-              <div className="grid grid-cols-2 gap-2 rounded-xl border-[1.5px] border-foreground bg-water-soft/60 p-2.5 shadow-[2px_2px_0_0_var(--water)]">
-                <div>
-                  <Label>Storage</Label>
-                  <div className="num text-lg font-bold text-water-deep">{Math.round(f.w * f.l * f.depth).toLocaleString()} m³</div>
-                </div>
-                <div>
-                  <Label>Like</Label>
-                  <div className="text-[11px] leading-tight text-foreground">
-                    {f.w * f.l * f.depth > 1500 ? "Benthemplein, Rotterdam (≈1,700 m³)" : "South Jamaica Houses, NYC (≈1,250 m³)"}
-                  </div>
-                </div>
+              <div className="flex items-baseline justify-between rounded-xl border-[1.5px] border-foreground bg-water-soft/60 px-2.5 py-2 shadow-[2px_2px_0_0_var(--water)]">
+                <Label>Storage</Label>
+                <div className="num text-lg font-bold text-water-deep">{Math.round(f.w * f.l * f.depth).toLocaleString()} m³</div>
               </div>
             </>
           )}
           {f.kind === "garden" && (
             <>
               <Slider label="Ponding depth" value={f.depth} min={0.1} max={0.5} step={0.05} onChange={(v) => update(f.id, { depth: v })} format={(v) => `${(v * 100).toFixed(0)} cm`} />
-              <div className="text-[10px] text-muted-foreground">
-                Holds about <span className="num text-foreground">{Math.round(f.w * f.l * (f.depth + STORE.garden.sMax))} m³</span>: {Math.round(f.depth * 100)} cm on top plus{" "}
-                {Math.round(STORE.garden.sMax * 1000)} mm in the soil and gravel.
-              </div>
             </>
-          )}
-          {f.kind === "permeable" && (
-            <div className="text-[10px] text-muted-foreground">
-              Soaks up to 300 mm/h into a 300 mm stone bed (≈{Math.round(f.w * f.l * STORE.permeable.sMax)} m³), which seeps into the clay at 2 mm/h.
-            </div>
           )}
         </>
       )}
@@ -338,9 +283,8 @@ function Inspector({ f }: { f: Feature }) {
           max={20}
           onChange={(v) => update(f.id, { capacityPerM: v / 1000 })}
           format={(v) => `${v} L/s/m`}
-          hint={`Total ≈ ${Math.round(f.capacityPerM * 1000 * f.pts.slice(1).reduce((a, p, k) => a + Math.hypot(p[0] - f.pts[k][0], p[1] - f.pts[k][1]), 0))} L/s`}
-
         />
+
       )}
       {f.kind === "inlet" && <Slider label="Capacity" value={Math.round(f.capacity * 1000)} min={20} max={300} step={10} onChange={(v) => update(f.id, { capacity: v / 1000 })} format={(v) => `${v} L/s`} />}
       <button onClick={() => set({ selectedId: null })} className="lift w-full rounded-lg border-[1.5px] border-foreground bg-card py-1.5 text-[11px] font-semibold text-foreground">

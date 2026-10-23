@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { fmtClock, fmtDuration, InkButton, Label, Panel, Readout, Segmented, Slider, Stamp, Toggle } from "@/components/ui/primitives";
 import { getEngine } from "@/lib/engine";
-import { KAPAR_2023, peakIntensity } from "@/lib/sim/storm";
+import { KAPAR_2023 } from "@/lib/sim/storm";
 import type { Stats } from "@/lib/sim/types";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -35,10 +35,7 @@ export function StormPanel() {
 
   return (
     <Panel className="flex max-h-full flex-col p-3">
-      <Label tone="water">Storm</Label>
-      <div className="font-display text-xl font-semibold leading-tight">Let it rain</div>
-
-      <div className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 scroll-thin">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 scroll-thin">
         <Segmented
           value={preset}
           onChange={(v) => (v === "kapar" ? set({ storm: { ...KAPAR_2023, highTide: storm.highTide }, preset: "kapar" }) : set({ preset: "custom" }))}
@@ -47,16 +44,8 @@ export function StormPanel() {
             { value: "custom", label: "Custom" },
           ]}
         />
-        <AnimatePresence initial={false} mode="wait">
-          {preset === "kapar" ? (
-            <motion.div key="k" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <div className="relative rounded-xl border border-[#ecd98a] bg-sun-soft p-2.5 text-[11px] leading-snug text-foreground/80">
-                <span className="num font-bold text-foreground">98.5 mm</span> in about <span className="num font-bold text-foreground">3 h</span>. Front-loaded thunderstorm shape, peak{" "}
-                <span className="num font-bold text-foreground">{peakIntensity(storm).toFixed(0)} mm/h</span>.
-                <div className="mt-1 font-hand text-[17px] leading-none text-tomato-ink">the one that flooded Bandar Bukit Raja</div>
-              </div>
-            </motion.div>
-          ) : (
+        <AnimatePresence initial={false}>
+          {preset === "custom" && (
             <motion.div key="c" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="space-y-2 overflow-hidden">
               <Slider label="Rainfall" value={storm.totalMm} min={10} max={300} step={0.5} onChange={(v) => setStorm({ totalMm: v })} format={(v) => `${v} mm`} />
               <Slider label="Duration" value={storm.durationMin} min={15} max={720} step={15} onChange={(v) => setStorm({ durationMin: v })} format={(v) => fmtDuration(v * 60)} />
@@ -69,7 +58,6 @@ export function StormPanel() {
                   { value: "uniform", label: "Steady" },
                 ]}
               />
-              <div className="num text-[10px] text-muted-foreground">Peak {peakIntensity(storm).toFixed(0)} mm/h · average {((storm.totalMm / storm.durationMin) * 60).toFixed(0)} mm/h</div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -77,20 +65,20 @@ export function StormPanel() {
           checked={storm.highTide}
           onChange={(v) => set({ storm: { ...storm, highTide: v } })}
           label="High tide"
-          hint={`Outfalls to the Klang estuary back up: drains carry ${Math.round(params.tideFactor * 100)}% of normal until an hour after the rain.`}
         />
 
         <button onClick={() => setAdv((a) => !a)} className="label flex w-full items-center justify-between transition-colors hover:!text-foreground">
-          Model assumptions
+          Assumptions
           <ChevronDown className={cn("size-3.5 transition-transform", adv && "rotate-180")} />
         </button>
         <AnimatePresence initial={false}>
           {adv && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="space-y-2 overflow-hidden">
-              <Slider label="Existing drain capacity" value={params.drainMmPerHour} min={0} max={80} onChange={(v) => setParams({ drainMmPerHour: v })} format={(v) => `${v} mm/h`} hint="Over the whole area; ageing, silted drains are lower." />
-              <Slider label="Drains left at high tide" value={Math.round(params.tideFactor * 100)} min={0} max={100} step={5} onChange={(v) => setParams({ tideFactor: v / 100 })} format={(v) => `${v}%`} />
-              <Slider label="'Flooded building' threshold" value={Math.round(params.buildingThreshold * 100)} min={5} max={50} onChange={(v) => setParams({ buildingThreshold: v / 100 })} format={(v) => `${v} cm`} hint="Water at the building edge deeper than a doorstep." />
-              <Slider label="Simulate after the rain" value={params.afterMin} min={60} max={480} step={30} onChange={(v) => setParams({ afterMin: v })} format={(v) => fmtDuration(v * 60)} />
+              <Slider label="Drain capacity" value={params.drainMmPerHour} min={0} max={80} onChange={(v) => setParams({ drainMmPerHour: v })} format={(v) => `${v} mm/h`} />
+              <Slider label="Drains at high tide" value={Math.round(params.tideFactor * 100)} min={0} max={100} step={5} onChange={(v) => setParams({ tideFactor: v / 100 })} format={(v) => `${v}%`} />
+              <Slider label="Flooded at door" value={Math.round(params.buildingThreshold * 100)} min={5} max={50} onChange={(v) => setParams({ buildingThreshold: v / 100 })} format={(v) => `${v} cm`} />
+              <Slider label="After rain"
+ value={params.afterMin} min={60} max={480} step={30} onChange={(v) => setParams({ afterMin: v })} format={(v) => fmtDuration(v * 60)} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -163,9 +151,9 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
   const near = useApp((s) => s.near);
   if (!base && !design) return null;
   const rows = [
-    { label: "Peak street depth", a: base?.peakStreetDepth, b: design?.peakStreetDepth, unit: "m", d: 2, now: [base?.streetDepth, design?.streetDepth] },
-    { label: `Buildings with > ${Math.round(thr * 100)} cm at the door`, a: base?.peakBuildingsWet, b: design?.peakBuildingsWet, unit: "", d: 0, now: [base?.buildingsWet, design?.buildingsWet] },
-    { label: "Street area under > 15 cm", a: base?.peakFloodedRoadArea, b: design?.peakFloodedRoadArea, unit: "m²", d: 0, now: [base?.floodedRoadArea, design?.floodedRoadArea] },
+    { label: "Peak street depth", a: base?.peakStreetDepth, b: design?.peakStreetDepth, unit: "m", d: 2 },
+    { label: `Homes > ${Math.round(thr * 100)} cm at door`, a: base?.peakBuildingsWet, b: design?.peakBuildingsWet, unit: "", d: 0 },
+    { label: "Street > 15 cm", a: base?.peakFloodedRoadArea, b: design?.peakFloodedRoadArea, unit: "m²", d: 0 },
   ];
   const nb = done ? near.base : near.live?.base;
   const nd = done ? near.design : near.live?.design;
@@ -173,20 +161,16 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
   const others = design?.features.filter((f) => f.kind !== "square") ?? [];
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label tone="ink">{done ? "Results" : "Live readouts"}</Label>
-        {design && (
-          <div className="label flex gap-2 !text-[9px]">
-            <span>Without</span>
-            <span className="!text-ok">With</span>
-          </div>
-        )}
-      </div>
+      {design && (
+        <div className="label flex justify-end gap-2 !text-[9px]">
+          <span>Without</span>
+          <span className="!text-ok">With</span>
+        </div>
+      )}
       {design && (nb || nd) && (
         <div className="rounded-xl border-[1.5px] border-foreground bg-mint/60 px-2.5 py-2 shadow-[2px_2px_0_0_var(--foreground)]">
           <div className="flex items-center justify-between">
-            <Label tone="ink" className="!tracking-[0.1em]">Within 150 m of your design</Label>
-            <span className="num text-[9px] text-muted-foreground">{nb?.buildings ?? nd?.buildings} buildings</span>
+            <Label tone="ink" className="!tracking-[0.1em]">Within 150 m</Label>
           </div>
           {[
             ["Deepest street", nb?.peakDepth, nd?.peakDepth, "m", 2],
@@ -216,12 +200,6 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
             <Readout label="" value={r.a} unit={r.unit} decimals={r.d} tone={design ? "default" : "water"} />
             {design && <Readout label="" value={r.b} unit={r.unit} decimals={r.d} tone="good" className="text-right [&>div]:justify-end" />}
           </div>
-          {!done && (
-            <div className="num text-[9px] text-muted-foreground">
-              now {r.now[0]?.toFixed(r.d) ?? "—"}
-              {design ? ` / ${r.now[1]?.toFixed(r.d) ?? "—"}` : ""} {r.unit}
-            </div>
-          )}
         </div>
       ))}
       {sq.map((f) => (
@@ -233,11 +211,11 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
               <span className="num text-[10px] font-bold text-water-deep">{Math.round((f.fill ?? 0) * 100)}% full</span>
             </div>
             <div className="mt-1.5 grid grid-cols-2 gap-2">
-              <Readout label="Stored now" value={f.stored} unit="m³" decimals={0} tone="water" />
-              <Readout label="Peak stored" value={f.peakStored} unit="m³" decimals={0} />
+              <Readout label="Stored" value={f.stored} unit="m³" decimals={0} tone="water" />
+              <Readout label="Peak" value={f.peakStored} unit="m³" decimals={0} />
               <Readout label="Level" value={(f.level ?? 0) * 100} unit="cm" decimals={0} />
               <div>
-                <div className="label">Empty after</div>
+                <div className="label">Empties in</div>
                 <div className="num text-sm leading-tight text-foreground">
                   {f.emptyAt != null
                     ? fmtDuration(f.emptyAt - durationOf())
@@ -249,7 +227,6 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
                           : `~${fmtDuration(Math.max(0, (design?.t ?? 0) - durationOf()) + f.projectedEmpty)}`
                         : "filling…"}
                 </div>
-                <div className="text-[9px] text-muted-foreground">after rain stops{f.emptyAt == null && f.peakStored > 1 && (done || (design?.t ?? 0) > durationOf()) ? " (projected)" : ""}</div>
               </div>
             </div>
           </div>
@@ -257,12 +234,12 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
       ))}
       {others.length > 0 && (
         <div className="rounded-xl border border-border bg-card px-2.5 py-2">
-          <Label className="mb-1 !tracking-[0.1em]">Other features</Label>
           {others.map((f) => (
             <div key={f.id} className="num flex justify-between py-0.5 text-[11px]">
               <span className="truncate font-sans text-foreground">{f.name}</span>
               <span className="text-muted-foreground">
-                {f.captured !== undefined ? `${Math.round(f.captured)} m³ caught` : `${Math.round(f.stored)} / ${Math.round(f.capacity)} m³ (peak ${Math.round(f.peakStored)})`}
+                {f.captured !== undefined ? `${Math.round(f.captured)} m³` : `${Math.round(f.peakStored)} / ${Math.round(f.capacity)} m³`}
+
               </span>
             </div>
           ))}

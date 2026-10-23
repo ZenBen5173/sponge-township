@@ -1,9 +1,9 @@
 "use client";
-import { AlertTriangle, BellRing, CheckCircle2, CloudLightning, CloudRain, CloudSun, Haze, Link2, Play, QrCode, Radio, RotateCcw, Sun, Wrench } from "lucide-react";
+import { AlertTriangle, BellRing, CheckCircle2, CloudLightning, CloudRain, CloudSun, Haze, Link2, Play, Radio, RotateCcw, Sun, Wrench } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { fmtClock, fmtDuration, InkButton, Label, Mascot, Panel, PaperButton, Readout, Segmented, Stamp, Toggle } from "@/components/ui/primitives";
+import { fmtClock, fmtDuration, InkButton, Label, Mascot, Panel, PaperButton, Readout, Segmented, Toggle } from "@/components/ui/primitives";
 import { AlertEngine, type CourtAlert } from "@/lib/alerts";
 import { MONITOR_CHANNEL, type MonitorMessage } from "@/lib/monitor-channel";
 import { EASE } from "@/lib/motion";
@@ -240,26 +240,15 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
 
   const status = !feed ? "idle" : feed.fill >= 0.8 ? "full" : feed.closed ? "closed" : "open";
   const statusUI = ({
-    idle: { label: "Waiting", stamp: "No feed", sub: "No sensor feed yet", bg: "bg-muted", tone: "ink", mood: "sleepy", note: "zzz… no storm yet" },
-    open: { label: "Court open", stamp: "Open", sub: "Dry and safe to play", bg: "bg-mint", tone: "ok", mood: "happy", note: "go play!" },
-    closed: { label: "Court closed", stamp: "Closed", sub: "Storm water expected or entering", bg: "bg-sun-soft", tone: "warn", mood: "worried", note: "soaking it up…" },
-    full: { label: "Court closed · filling", stamp: "80% full", sub: "Above 80% — keep clear of the edges", bg: "bg-tomato-soft", tone: "tomato", mood: "soaked", note: "keep clear of the edges" },
+    idle: { label: "Waiting", bg: "bg-muted", mood: "sleepy" },
+    open: { label: "Court open", bg: "bg-mint", mood: "happy" },
+    closed: { label: "Court closed", bg: "bg-sun-soft", mood: "worried" },
+    full: { label: "Court closed", bg: "bg-tomato-soft", mood: "soaked" },
   } as const)[status];
 
   return (
     <div className={cn("mx-auto w-full max-w-6xl", embedded ? "h-full overflow-y-auto p-3 sm:p-5 scroll-thin" : "p-4 sm:p-6")}>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-bold leading-none tracking-tight sm:text-4xl">
-            Is the court{" "}
-            <span className="relative inline-block">
-              dry?
-              <svg viewBox="0 0 100 12" preserveAspectRatio="none" className="absolute -bottom-1.5 left-0 h-2.5 w-full" aria-hidden>
-                <path d="M2 8 Q 25 2 50 7 T 98 5" fill="none" stroke="var(--primary)" strokeWidth="3.5" strokeLinecap="round" />
-              </svg>
-            </span>
-          </h1>
-        </div>
+      <div className="mb-4 flex justify-end">
         <Segmented<Mode>
           value={mode}
           onChange={setMode}
@@ -285,12 +274,7 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
             <Mascot mood={statusUI.mood} size={58} className="shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="font-display text-xl font-bold leading-tight">{statusUI.label}</div>
-              <div className="text-[11px] text-foreground/70">{statusUI.sub}</div>
-              <div className="mt-0.5 font-hand text-[18px] leading-none text-foreground/80">{statusUI.note}</div>
             </div>
-            <Stamp key={statusUI.stamp} tone={statusUI.tone} className="absolute -top-2.5 right-3 bg-card/80 !text-[12px]">
-              {statusUI.stamp}
-            </Stamp>
           </motion.div>
           {feed ? (
             <>
@@ -304,17 +288,17 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
               <div className="mt-3 rounded-xl border border-dashed border-foreground/25 bg-background px-3 py-2 text-[11px] text-muted-foreground">
                 {feed.clock === "sim" ? (
                   <>
-                    <span className="num text-foreground">{fmtClock(feed.t)}</span> after the storm began ·{" "}
+                    <span className="num text-foreground">T+{fmtClock(feed.t)}</span> ·{" "}
                     {feed.emptyAt != null
-                      ? `emptied ${fmtDuration(feed.emptyAt - KAPAR_2023.durationMin * 60)} after the rain`
+                      ? `empty after ${fmtDuration(feed.emptyAt - KAPAR_2023.durationMin * 60)}`
                       : feed.level > 0.01
                         ? feed.projectedEmpty == null
                           ? "outlet blocked"
-                          : `empties in ~${fmtDuration(feed.projectedEmpty)} once inflow stops`
+                          : `empties in ~${fmtDuration(feed.projectedEmpty)}`
                         : "dry"}
                   </>
                 ) : (
-                  <>Sensor reads dry.</>
+                  <>dry</>
                 )}
               </div>
             </>
@@ -367,7 +351,6 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
               checked={mode === "linked" ? storeClog > 0 : clog}
               onChange={(v) => (mode === "linked" && embedded ? setParams({ clog: v ? 0.85 : 0 }) : setClog(v))}
               label="Clogged outlet"
-              hint="85% of the outlet pipe blocked."
             />
             {mode === "replay" && (
               <PaperButton onClick={restartReplay} className="group">
@@ -435,7 +418,7 @@ function WeatherCard({ w, err }: { w: WeatherPayload | null; err: boolean }) {
       {w && w.days.length > 0 && (
         <>
           <div className={cn("mt-2 rounded-xl border px-3 py-2 text-[11px] font-medium", w.heavyExpected ? "border-[#ecd98a] bg-sun-soft text-foreground" : "border-ok/25 bg-mint/70 text-ok")}>
-            {w.heavyExpected ? `Heavy rain risk — ${w.heavyReason}` : "No heavy rain expected for the rest of today."}
+            {w.heavyExpected ? w.heavyReason : "No heavy rain today"}
           </div>
           <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-7 lg:grid-cols-4 xl:grid-cols-7">
             {w.days.map((d, k) => (
@@ -452,9 +435,6 @@ function WeatherCard({ w, err }: { w: WeatherPayload | null; err: boolean }) {
                 <span className="num text-[10px] text-foreground">{d.max}°</span>
               </motion.div>
             ))}
-          </div>
-          <div className="mt-2 text-[10px] leading-snug text-muted-foreground">
-            Today: {w.days[0].summary.en} ({w.days[0].when.toLowerCase()}). <span className="opacity-70">“{w.days[0].summary.bm}”</span>
           </div>
           {w.warnings.length > 0 && (
             <div className="mt-2 space-y-1">
@@ -482,8 +462,7 @@ function HistoryCard({ feed }: { feed: Feed }) {
   return (
     <Panel className="p-4">
       <div className="mb-1 flex items-center justify-between gap-2 font-display text-base font-semibold">
-        Level over the storm
-        <Label className="shrink-0 !text-[9px] !tracking-[0.1em]">line: level · bars: rain</Label>
+        Level
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-24 w-full" preserveAspectRatio="none">
         {feed.history.t.map((t, k) => (
@@ -512,11 +491,7 @@ function QRCard() {
       {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL QR code, nothing to optimise */}
       {src ? <img src={src} alt="QR code to the phone dashboard" className="size-24 rounded-lg border-[1.5px] border-foreground bg-white p-1 shadow-[3px_3px_0_0_var(--foreground)]" /> : <div className="size-24 rounded-lg bg-muted" />}
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 font-display text-base font-semibold">
-          <QrCode className="size-4 text-primary" /> On your phone
-
-        </div>
-        <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground">{url}</div>
+        <div className="truncate font-mono text-[10px] text-muted-foreground">{url}</div>
       </div>
     </Panel>
   );
