@@ -43,6 +43,21 @@ function Logo() {
 // Handy for debugging and for scripted end-to-end checks.
 if (typeof window !== "undefined") (window as unknown as { __sponge: unknown }).__sponge = { useApp, getEngine };
 
+function PanelToggle({ open, side, onClick }: { open: boolean; side: "left" | "right"; onClick: () => void }) {
+  const pointsLeft = (side === "left") === open;
+  return (
+    <button
+      onClick={onClick}
+      title={open ? "Hide panel" : "Show panel"}
+      className="glass group mt-2 grid h-10 w-5 place-items-center rounded-lg text-muted-foreground transition-colors hover:text-primary"
+    >
+      <svg viewBox="0 0 8 12" className={cn("size-2.5 transition-transform group-hover:scale-125", pointsLeft ? "" : "rotate-180")}>
+        <path d="M6 1 1 6l5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    </button>
+  );
+}
+
 export default function App() {
   const phase = useApp((s) => s.phase);
   const scene = useApp((s) => s.scene);
@@ -50,6 +65,8 @@ export default function App() {
   const toast = useApp((s) => s.toast);
   const set = useApp((s) => s.set);
   const [exporting, setExporting] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
 
   // tool shortcuts
   useEffect(() => {
@@ -124,23 +141,49 @@ export default function App() {
               <Viewport />
               <div className="pointer-events-none absolute inset-0 flex flex-col gap-3 p-3">
                 <div className="flex min-h-0 flex-1 justify-between gap-3">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="pointer-events-auto hidden min-h-0 w-[290px] shrink-0 md:flex md:flex-col"
-                  >
-                    <DesignPanel />
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="pointer-events-auto ml-auto flex min-h-0 w-full max-w-[320px] shrink-0 flex-col sm:w-[320px]"
-                  >
-                    <StormPanel />
-                  </motion.div>
+                  <div className="pointer-events-auto hidden min-h-0 shrink-0 items-start gap-1 md:flex">
+                    <AnimatePresence initial={false}>
+                      {leftOpen && (
+                        <motion.div
+                          key="l"
+                          initial={{ opacity: 0, x: -24, width: 0 }}
+                          animate={{ opacity: 1, x: 0, width: 290 }}
+                          exit={{ opacity: 0, x: -24, width: 0 }}
+                          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                          className="flex h-full min-h-0 flex-col overflow-hidden"
+                        >
+                          <DesignPanel />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <PanelToggle open={leftOpen} side="left" onClick={() => setLeftOpen((v) => !v)} />
+                  </div>
+                  <div className="pointer-events-auto ml-auto flex min-h-0 shrink-0 items-start gap-1">
+                    <PanelToggle open={rightOpen} side="right" onClick={() => setRightOpen((v) => !v)} />
+                    <AnimatePresence initial={false}>
+                      {rightOpen && (
+                        <motion.div
+                          key="r"
+                          initial={{ opacity: 0, x: 24, width: 0 }}
+                          animate={{ opacity: 1, x: 0, width: 320 }}
+                          exit={{ opacity: 0, x: 24, width: 0 }}
+                          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                          className="flex h-full min-h-0 max-w-[calc(100vw-60px)] flex-col overflow-hidden"
+                        >
+                          <StormPanel />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
-                <div className="pointer-events-auto">
+                <div className="pointer-events-auto hidden sm:block">
                   <Timeline />
+                </div>
+                <div className="pointer-events-auto glass rounded-xl px-3 py-2 text-[11px] text-muted-foreground sm:hidden">
+                  The designer works best on a laptop.{" "}
+                  <button onClick={() => set({ phase: "monitor" })} className="text-primary underline">
+                    Open the resident dashboard
+                  </button>
                 </div>
               </div>
             </div>

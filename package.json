@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "bake": "node scripts/bake.mjs"
   },
   "dependencies": {
     "@number-flow/react": "^0.6.2",

@@ -274,7 +274,7 @@ class Engine {
     useApp.setState({ run: { ...useApp.getState().run, status: "starting", t: 0 }, showCandidates: false, view: s.features.length ? s.view : "without" });
     this.sim.speed = s.run.speed;
     try {
-      await this.sim.start(s.scene.grid, s.features, s.storm, s.params, s.features.length > 0, !/[?&]cpu/.test(location.search));
+      await this.sim.start(s.scene.grid, s.features, s.storm, s.params, s.features.length > 0, !new URLSearchParams(location.search).has("cpu"));
       useApp.setState({ run: { ...useApp.getState().run, status: "running", tEnd: this.sim.tEnd }, solver: this.sim.engine });
     } catch (err) {
       useApp.setState({ run: { ...useApp.getState().run, status: "idle" } });

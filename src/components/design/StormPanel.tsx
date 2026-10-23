@@ -29,6 +29,7 @@ export function StormPanel() {
   const setStorm = useApp((s) => s.setStorm);
   const setParams = useApp((s) => s.setParams);
   const [adv, setAdv] = useState(false);
+  const solver = useApp((s) => s.solver);
   const eng = getEngine();
   const busy = run.status === "running" || run.status === "starting" || run.status === "paused";
   const base = finals.base ?? stats.base;
@@ -126,6 +127,11 @@ export function StormPanel() {
               <div className="flex-1 text-right">
                 <div className="num text-lg leading-none text-foreground">{fmtClock(run.t)}</div>
                 <div className="text-[10px] text-muted-foreground">of {fmtClock(run.tEnd)} simulated</div>
+                {solver && (
+                  <div className={cn("mt-0.5 inline-block rounded px-1 text-[9px] uppercase tracking-wider", solver === "gpu" ? "bg-primary/15 text-primary" : "bg-white/5 text-muted-foreground")}>
+                    {solver === "gpu" ? "WebGPU solver" : "CPU solver"}
+                  </div>
+                )}
               </div>
             </div>
             <Segmented size="sm" value={String(run.speed)} onChange={(v) => eng.setSpeed(Number(v))} options={SPEEDS} />
