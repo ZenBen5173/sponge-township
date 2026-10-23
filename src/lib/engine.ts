@@ -9,6 +9,8 @@ import { type FeatureStat, Land } from "./sim/types";
 import { type NearStats, useApp } from "./store";
 
 const NEAR_R = 150;
+type FeatureStatHost = { features: FeatureStat[] };
+
 
 import { MONITOR_CHANNEL, type MonitorMessage } from "./monitor-channel";
 
@@ -42,6 +44,7 @@ class Engine {
         this.basePeak = f.peak;
         this.rateCandidates(f.peak);
       }
+      this.pinNotes(runKey, f.peak, f.stats);
       if (this.sim.finals.design && (this.sim.finals.base || !this.sim.latest.base)) this.capturePeaks();
     };
     this.sim.onError = (m) => useApp.getState().flash(`Simulation error: ${m}`);
@@ -130,6 +133,50 @@ class Engine {
     for (let b = 0; b < nB; b++) cells.set(lists[b], off[b]);
     this.rims = { off, cells };
     this.wet = new Float32Array(nB);
+  }
+
+  /** Handwritten notes on the model: where the street flooded deepest, and how full the court got. */
+  private pinNotes(side: "base" | "design", peak: Float32Array, stats: FeatureStatHost) {
+    const s = useApp.getState();
+    const sc = s.scene;
+    if (!sc) return;
+    const { nx, dx, land } = sc.grid;
+    const notes = s.notes.filter((n) => n.side !== side);
+    let best = 0;
+    let bc = -1;
+    for (let c = 0; c < peak.length; c++)
+      if (land[c] === Land.Road && peak[c] > best) {
+        best = peak[c];
+        bc = c;
+      }
+    if (side === "base" && bc >= 0 && best > 0.05) {
+      notes.push({ id: `deep-${side}`, x: ((bc % nx) + 0.5) * dx, y: (((bc / nx) | 0) + 0.5) * dx, text: `worst street — ${Math.round(best * 100)} cm deep`, tone: "tomato", side });
+    }
+    if (side === "design") {
+      const sq = stats.features.find((f) => f.kind === "square");
+      const ft = sq && s.features.find((f) => f.id === sq.id);
+      if (sq && ft && ft.kind === "square") {
+        notes.push({
+          id: `court-${side}`,
+          x: ft.cx,
+          y: ft.cy,
+          text: `court held ${Math.round(sq.peakStored).toLocaleString()} m³ — ${Math.round((sq.peakStored / Math.max(1, sq.capacity)) * 100)}% full`,
+          tone: "water",
+          side,
+        });
+      }
+    }
+    // once both runs are in (either may finish first): how much shallower the streets near the court got
+    const nb = useApp.getState().near.base;
+    const nd = useApp.getState().near.design;
+    const kept = notes.filter((n) => n.id !== "near");
+    const deep = kept.find((n) => n.id === "deep-base");
+    if (nb && nd && nb.peakDepth > 0 && deep) {
+      const drop = Math.round((1 - nd.peakDepth / nb.peakDepth) * 100);
+      if (drop > 2) kept.push({ id: "near", x: deep.x + 6, y: deep.y + 4, text: `${drop}% shallower with the court`, tone: "water", side: "design" });
+    }
+    useApp.setState({ notes: kept });
+
   }
 
   /** Road cells and buildings within `r` metres of any design feature. */

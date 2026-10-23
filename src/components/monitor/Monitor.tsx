@@ -1,9 +1,9 @@
 "use client";
-import { AlertTriangle, BellRing, CheckCircle2, CloudLightning, CloudRain, CloudSun, Droplets, Haze, Link2, Play, QrCode, Radio, RotateCcw, Sun, Wrench } from "lucide-react";
+import { AlertTriangle, BellRing, CheckCircle2, CloudLightning, CloudRain, CloudSun, Haze, Link2, Play, QrCode, Radio, RotateCcw, Sun, Wrench } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { fmtClock, fmtDuration, Panel, Readout, Segmented, Toggle } from "@/components/ui/primitives";
+import { fmtClock, fmtDuration, InkButton, Label, Mascot, Panel, PaperButton, Readout, Segmented, Stamp, Toggle } from "@/components/ui/primitives";
 import { AlertEngine, type CourtAlert } from "@/lib/alerts";
 import { MONITOR_CHANNEL, type MonitorMessage } from "@/lib/monitor-channel";
 import { EASE } from "@/lib/motion";
@@ -239,20 +239,26 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
   }, [linked, embedded]);
 
   const status = !feed ? "idle" : feed.fill >= 0.8 ? "full" : feed.closed ? "closed" : "open";
-  const statusUI = {
-    idle: { label: "Waiting", sub: "No sensor feed yet", cls: "border-border bg-white/5 text-muted-foreground", dot: "bg-muted-foreground" },
-    open: { label: "Court open", sub: "Dry and safe to play", cls: "border-ok/40 bg-ok/10 text-ok", dot: "bg-ok" },
-    closed: { label: "Court closed", sub: "Storm water expected or entering", cls: "border-warn/50 bg-warn/10 text-warn", dot: "bg-warn" },
-    full: { label: "Court closed · filling", sub: "Above 80% — keep clear of the edges", cls: "border-danger/50 bg-danger/10 text-danger", dot: "bg-danger" },
-  }[status];
+  const statusUI = ({
+    idle: { label: "Waiting", stamp: "No feed", sub: "No sensor feed yet", bg: "bg-muted", tone: "ink", mood: "sleepy", note: "zzz… no storm yet" },
+    open: { label: "Court open", stamp: "Open", sub: "Dry and safe to play", bg: "bg-mint", tone: "ok", mood: "happy", note: "go play!" },
+    closed: { label: "Court closed", stamp: "Closed", sub: "Storm water expected or entering", bg: "bg-sun-soft", tone: "warn", mood: "worried", note: "soaking it up…" },
+    full: { label: "Court closed · filling", stamp: "80% full", sub: "Above 80% — keep clear of the edges", bg: "bg-tomato-soft", tone: "tomato", mood: "soaked", note: "keep clear of the edges" },
+  } as const)[status];
 
   return (
     <div className={cn("mx-auto w-full max-w-6xl", embedded ? "h-full overflow-y-auto p-3 sm:p-5 scroll-thin" : "p-4 sm:p-6")}>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-primary">Step 3 · Monitor</div>
-          <h1 className="font-display text-3xl leading-none sm:text-4xl">
-            Is the court <em className="text-primary">dry?</em>
+          <Label tone="tomato">Step 3 · Monitor</Label>
+          <h1 className="mt-1 font-display text-3xl font-bold leading-none tracking-tight sm:text-4xl">
+            Is the court{" "}
+            <span className="relative inline-block">
+              dry?
+              <svg viewBox="0 0 100 12" preserveAspectRatio="none" className="absolute -bottom-1.5 left-0 h-2.5 w-full" aria-hidden>
+                <path d="M2 8 Q 25 2 50 7 T 98 5" fill="none" stroke="var(--primary)" strokeWidth="3.5" strokeLinecap="round" />
+              </svg>
+            </span>
           </h1>
           <p className="mt-1 max-w-md text-xs text-muted-foreground">Residents see this on their phones: the square&apos;s water level, whether the court is open, and why.</p>
         </div>
@@ -270,22 +276,23 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr_1fr]">
         {/* status + gauge */}
-        <Panel className="p-4" glow="56,189,248">
+        <Panel className="p-4">
           <motion.div
             key={status}
             initial={{ scale: 0.97, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.35, ease: EASE.expressive }}
-            className={cn("mb-4 flex items-center gap-3 rounded-2xl border px-4 py-3", statusUI.cls)}
+            className={cn("relative mb-4 flex items-center gap-3 rounded-2xl border-[1.5px] border-foreground px-3 py-3 shadow-[3px_3px_0_0_var(--foreground)]", statusUI.bg)}
           >
-            <span className="relative flex size-3">
-              <span className={cn("absolute inset-0 rounded-full", statusUI.dot)} style={{ animation: "ping-soft 1.6s ease-out infinite" }} />
-              <span className={cn("relative size-3 rounded-full", statusUI.dot)} />
-            </span>
-            <div>
-              <div className="text-lg font-semibold leading-tight">{statusUI.label}</div>
-              <div className="text-[11px] opacity-80">{statusUI.sub}</div>
+            <Mascot mood={statusUI.mood} size={58} className="shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-xl font-bold leading-tight">{statusUI.label}</div>
+              <div className="text-[11px] text-foreground/70">{statusUI.sub}</div>
+              <div className="mt-0.5 font-hand text-[18px] leading-none text-foreground/80">{statusUI.note}</div>
             </div>
+            <Stamp key={statusUI.stamp} tone={statusUI.tone} className="absolute -top-2.5 right-3 bg-card/80 !text-[12px]">
+              {statusUI.stamp}
+            </Stamp>
           </motion.div>
           {feed ? (
             <>
@@ -296,11 +303,11 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
                 <Readout label="Flowing in" value={feed.inflow * 1000} unit="L/s" decimals={0} />
                 <Readout label="Draining out" value={feed.outflow * 1000} unit="L/s" decimals={0} />
               </div>
-              <div className="mt-3 rounded-xl border border-border bg-black/25 px-3 py-2 text-[11px] text-muted-foreground">
+              <div className="mt-3 rounded-xl border border-dashed border-foreground/25 bg-background px-3 py-2 text-[11px] text-muted-foreground">
                 {feed.clock === "sim" ? (
                   <>
                     <span className="num text-foreground">{fmtClock(feed.t)}</span> after the storm began ·{" "}
-                    {feed.drainDown && <span className="text-water">fast-forwarding the drain-down (outlet only) · </span>}
+                    {feed.drainDown && <span className="text-water-deep">fast-forwarding the drain-down (outlet only) · </span>}
                     {feed.emptyAt != null
                       ? `emptied ${fmtDuration(feed.emptyAt - KAPAR_2023.durationMin * 60)} after the rain`
                       : feed.level > 0.01
@@ -322,10 +329,10 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
         {/* alerts */}
         <Panel className="flex flex-col p-4">
           <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-medium">
+            <div className="flex items-center gap-2 font-display text-base font-semibold">
               <BellRing className="size-4 text-primary" /> Alerts
             </div>
-            <span className="text-[10px] text-muted-foreground">in-app · no SMS</span>
+            <Label className="!text-[9px]">in-app · no SMS</Label>
           </div>
           <div className="min-h-[220px] flex-1 space-y-2 overflow-y-auto pr-1 scroll-thin lg:max-h-[420px]">
             <AnimatePresence initial={false}>
@@ -337,15 +344,19 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.35, ease: EASE.expressive }}
-                  className={cn(
-                    "flex gap-3 rounded-xl border p-3",
-                    a.level === "danger" ? "border-danger/40 bg-danger/5" : a.level === "warn" ? "border-warn/40 bg-warn/5" : a.level === "ok" ? "border-ok/40 bg-ok/5" : "border-border bg-black/20",
-                  )}
+                  className="lift flex overflow-hidden rounded-xl border border-border bg-card"
                 >
-                  <div className="mt-0.5">{ICONS[a.kind] ?? ICONS.info}</div>
-                  <div className="min-w-0">
+                  <div
+                    className={cn(
+                      "grid w-11 shrink-0 place-items-center border-r-[1.5px] border-dashed border-foreground/25",
+                      a.level === "danger" ? "bg-tomato-soft" : a.level === "warn" ? "bg-sun-soft" : a.level === "ok" ? "bg-mint" : "bg-water-soft",
+                    )}
+                  >
+                    {ICONS[a.kind] ?? ICONS.info}
+                  </div>
+                  <div className="min-w-0 flex-1 p-2.5">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-sm font-medium text-foreground">{a.title}</span>
+                      <span className="text-sm font-semibold text-foreground">{a.title}</span>
                       <span className="num shrink-0 text-[10px] text-muted-foreground">{a.clock === "sim" ? `T+${fmtClock(a.at)}` : new Date(a.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
                     <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{a.body}</p>
@@ -363,9 +374,9 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
               hint={mode === "linked" && !embedded ? "Change it in the simulator tab." : "Blocks 85% of the outlet pipe to test the clog warning."}
             />
             {mode === "replay" && (
-              <button onClick={restartReplay} className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground">
-                <RotateCcw className="size-3" /> Restart replay
-              </button>
+              <PaperButton onClick={restartReplay} className="group">
+                <RotateCcw className="size-3 transition-transform duration-300 group-hover:-rotate-180" /> Restart replay
+              </PaperButton>
             )}
           </div>
         </Panel>
@@ -391,20 +402,20 @@ function EmptyLinked({ onReplay, embedded }: { onReplay: () => void; embedded: b
   return (
     <div className="grid h-64 place-items-center text-center">
       <div className="max-w-xs">
-        <Droplets className="mx-auto mb-2 size-6 text-water" />
-        <div className="text-sm text-foreground">Not linked to a storm yet</div>
+        <Mascot mood="sleepy" size={64} className="mx-auto mb-2" />
+        <div className="font-display text-base font-semibold text-foreground">Not linked to a storm yet</div>
         <p className="mt-1 text-[11px] text-muted-foreground">
           Place a water square and run a storm in the simulator — this gauge fills from the simulation as it runs{embedded ? "" : " (open the simulator in another tab on this device)"}.
         </p>
         <div className="mt-3 flex justify-center gap-2">
           {embedded && (
-            <button onClick={() => setPhase({ phase: "design" })} className="rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground">
+            <InkButton onClick={() => setPhase({ phase: "design" })} className="px-3 py-1.5 text-xs">
               Go to simulator
-            </button>
+            </InkButton>
           )}
-          <button onClick={onReplay} className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">
-            Replay the 2023 storm
-          </button>
+          <PaperButton onClick={onReplay} className="px-3 py-1.5">
+            <Play className="size-3" /> Replay the 2023 storm
+          </PaperButton>
         </div>
       </div>
     </div>
@@ -416,21 +427,21 @@ function wxIcon(risk: number, en: string) {
   if (risk >= 1) return <CloudRain className="size-4 text-water" />;
   if (/haz/i.test(en)) return <Haze className="size-4 text-muted-foreground" />;
   if (/cloud/i.test(en)) return <CloudSun className="size-4 text-muted-foreground" />;
-  return <Sun className="size-4 text-yellow-300" />;
+  return <Sun className="size-4 text-warn" />;
 }
 
 function WeatherCard({ w, err }: { w: WeatherPayload | null; err: boolean }) {
   return (
     <Panel className="p-4">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium">Klang weather</div>
-        <span className="text-[10px] text-muted-foreground">MET Malaysia{w?.source === "cached" ? " · cached" : ""}</span>
+        <div className="font-display text-base font-semibold">Klang weather</div>
+        <Label className="!text-[9px]">MET Malaysia{w?.source === "cached" ? " · cached" : ""}</Label>
       </div>
-      {!w && !err && <div className="mt-3 h-24 animate-pulse rounded-xl bg-white/5" />}
+      {!w && !err && <div className="mt-3 h-24 animate-pulse rounded-xl bg-muted" />}
       {err && !w?.days.length && <div className="mt-3 text-[11px] text-muted-foreground">MET Malaysia&apos;s API is not answering right now. Alerts still run on the level sensor.</div>}
       {w && w.days.length > 0 && (
         <>
-          <div className={cn("mt-2 rounded-xl border px-3 py-2 text-[11px]", w.heavyExpected ? "border-warn/40 bg-warn/10 text-warn" : "border-ok/30 bg-ok/5 text-ok")}>
+          <div className={cn("mt-2 rounded-xl border px-3 py-2 text-[11px] font-medium", w.heavyExpected ? "border-[#ecd98a] bg-sun-soft text-foreground" : "border-ok/25 bg-mint/70 text-ok")}>
             {w.heavyExpected ? `Heavy rain risk — ${w.heavyReason}` : "No heavy rain expected for the rest of today."}
           </div>
           <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-7 lg:grid-cols-4 xl:grid-cols-7">
@@ -441,9 +452,9 @@ function WeatherCard({ w, err }: { w: WeatherPayload | null; err: boolean }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: k * 0.04 }}
                 title={`Morning: ${d.morning.en}\nAfternoon: ${d.afternoon.en}\nNight: ${d.night.en}\n(${d.summary.bm})`}
-                className="flex flex-col items-center gap-1 rounded-lg border border-border bg-black/20 px-1 py-1.5 transition-colors hover:border-border-strong"
+                className={cn("lift flex flex-col items-center gap-1 rounded-lg border px-1 py-1.5", k === 0 ? "border-foreground bg-sun-soft" : "border-border bg-card")}
               >
-                <span className="text-[9px] uppercase text-muted-foreground">{k === 0 ? "Today" : new Date(`${d.date}T00:00:00+08:00`).toLocaleDateString("en-MY", { weekday: "short" })}</span>
+                <span className="font-mono text-[9px] uppercase text-muted-foreground">{k === 0 ? "Today" : new Date(`${d.date}T00:00:00+08:00`).toLocaleDateString("en-MY", { weekday: "short" })}</span>
                 {wxIcon(d.summary.risk, d.summary.en)}
                 <span className="num text-[10px] text-foreground">{d.max}°</span>
               </motion.div>
@@ -455,7 +466,7 @@ function WeatherCard({ w, err }: { w: WeatherPayload | null; err: boolean }) {
           {w.warnings.length > 0 && (
             <div className="mt-2 space-y-1">
               {w.warnings.slice(0, 2).map((x, k) => (
-                <div key={`${x.issued}-${x.title}-${k}`} className={cn("rounded-lg border px-2 py-1 text-[10px]", x.relevant ? "border-warn/40 text-warn" : "border-border text-muted-foreground")}>
+                <div key={`${x.issued}-${x.title}-${k}`} className={cn("rounded-lg border px-2 py-1 text-[10px]", x.relevant ? "border-primary/40 bg-tomato-soft text-tomato-ink" : "border-border text-muted-foreground")}>
                   {x.title}
                   {x.relevant ? " · affects Klang" : ""}
                 </div>
@@ -477,17 +488,17 @@ function HistoryCard({ feed }: { feed: Feed }) {
   const lv = feed.history.t.map((t, k) => `${X(t).toFixed(1)},${(H - (Math.min(1.05, (feed.history.level[k] ?? 0) / feed.depth) * (H - 10))).toFixed(1)}`).join(" ");
   return (
     <Panel className="p-4">
-      <div className="mb-1 flex items-center justify-between text-sm font-medium">
+      <div className="mb-1 flex items-center justify-between gap-2 font-display text-base font-semibold">
         Level over the storm
-        <span className="text-[10px] font-normal text-muted-foreground">blue: level · bars: rain</span>
+        <Label className="shrink-0 !text-[9px] !tracking-[0.1em]">line: level · bars: rain</Label>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-24 w-full" preserveAspectRatio="none">
         {feed.history.t.map((t, k) => (
-          <rect key={k} x={X(t)} y={0} width={Math.max(1, W / feed.history.t.length)} height={(feed.history.rain[k] / maxR) * 28} fill="#38bdf8" opacity={0.25} />
+          <rect key={k} x={X(t)} y={0} width={Math.max(1, W / feed.history.t.length)} height={(feed.history.rain[k] / maxR) * 28} fill="#3d6cf5" opacity={0.22} />
         ))}
-        <line x1={0} x2={W} y1={H - 0.8 * (H - 10)} y2={H - 0.8 * (H - 10)} stroke="#fb6a4a" strokeDasharray="3 3" strokeOpacity={0.6} />
-        <polyline points={lv} fill="none" stroke="#60a5fa" strokeWidth={2} vectorEffect="non-scaling-stroke" />
-        <line x1={X(feed.t)} x2={X(feed.t)} y1={0} y2={H} stroke="white" strokeOpacity={0.6} vectorEffect="non-scaling-stroke" />
+        <line x1={0} x2={W} y1={H - 0.8 * (H - 10)} y2={H - 0.8 * (H - 10)} stroke="#ff5a36" strokeDasharray="3 3" strokeOpacity={0.8} vectorEffect="non-scaling-stroke" />
+        <polyline points={lv} fill="none" stroke="#1f3fb0" strokeWidth={2.25} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        <line x1={X(feed.t)} x2={X(feed.t)} y1={0} y2={H} stroke="#161514" strokeWidth={1.25} vectorEffect="non-scaling-stroke" />
       </svg>
     </Panel>
   );
@@ -498,7 +509,7 @@ function QRCard() {
   const [url, setUrl] = useState("");
   useEffect(() => {
     const u = `${window.location.origin}/monitor`;
-    QRCode.toDataURL(u, { margin: 1, width: 240, color: { dark: "#e8eef3", light: "#00000000" } }).then((d) => {
+    QRCode.toDataURL(u, { margin: 1, width: 240, color: { dark: "#161514", light: "#ffffff" } }).then((d) => {
       setSrc(d);
       setUrl(u);
     });
@@ -506,10 +517,11 @@ function QRCard() {
   return (
     <Panel className="flex items-center gap-4 p-4">
       {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL QR code, nothing to optimise */}
-      {src ? <img src={src} alt="QR code to the phone dashboard" className="size-24 rounded-lg bg-white/5 p-1" /> : <div className="size-24 rounded-lg bg-white/5" />}
+      {src ? <img src={src} alt="QR code to the phone dashboard" className="size-24 rounded-lg border-[1.5px] border-foreground bg-white p-1 shadow-[3px_3px_0_0_var(--foreground)]" /> : <div className="size-24 rounded-lg bg-muted" />}
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-sm font-medium">
+        <div className="flex items-center gap-1.5 font-display text-base font-semibold">
           <QrCode className="size-4 text-primary" /> On your phone
+
         </div>
         <p className="mt-1 text-[11px] leading-snug text-muted-foreground">Scan to open the resident dashboard. It replays the 2023 storm and shows live Klang weather.</p>
         <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground">{url}</div>

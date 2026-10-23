@@ -4,7 +4,8 @@ import type { GeoJSONSource } from "maplibre-gl";
 import { ArrowRight, Building2, ChevronDown, Crosshair, Loader2, MapPin, Search, SquareDashedMousePointer } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Panel, Slider } from "@/components/ui/primitives";
+import { InkButton, Label, Panel, Slider } from "@/components/ui/primitives";
+
 import { getEngine } from "@/lib/engine";
 import { gridFor } from "@/lib/data/scene";
 import { type Area, areaBBox, CASIRA, fmtLatLon, mPerDegLat, mPerDegLon } from "@/lib/geo";
@@ -121,9 +122,9 @@ export function AreaPicker() {
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     m.on("load", () => {
       m.addSource("box", { type: "geojson", data: boxFeature(areaRef.current) });
-      m.addLayer({ id: "box-fill", type: "fill", source: "box", paint: { "fill-color": "#5eead4", "fill-opacity": 0.12 } });
-      m.addLayer({ id: "box-glow", type: "line", source: "box", paint: { "line-color": "#5eead4", "line-width": 10, "line-opacity": 0.18, "line-blur": 6 } });
-      m.addLayer({ id: "box-line", type: "line", source: "box", paint: { "line-color": "#99f6e4", "line-width": 2, "line-dasharray": [2, 1.5] } });
+      m.addLayer({ id: "box-fill", type: "fill", source: "box", paint: { "fill-color": "#ff5a36", "fill-opacity": 0.1 } });
+      m.addLayer({ id: "box-glow", type: "line", source: "box", paint: { "line-color": "#ffffff", "line-width": 5, "line-opacity": 0.9 } });
+      m.addLayer({ id: "box-line", type: "line", source: "box", paint: { "line-color": "#ff5a36", "line-width": 2.5, "line-dasharray": [2.5, 1.5] } });
     });
 
     // drag the box to move it; draw a new one in draw mode
@@ -239,7 +240,6 @@ export function AreaPicker() {
       <div className="absolute inset-0">
         <div ref={mapEl} style={{ width: "100%", height: "100%" }} />
       </div>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(7,11,16,0.55))]" />
 
       <motion.div
         initial={{ opacity: 0, x: -24 }}
@@ -248,13 +248,17 @@ export function AreaPicker() {
         className="absolute left-3 top-3 w-[min(380px,calc(100%-24px))] sm:left-5 sm:top-5"
       >
         <Panel className="overflow-visible p-4">
-          <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-primary">Step 1 · Pick an area</div>
-          <h2 className="font-display text-[26px] leading-[1.05] text-foreground">
-            Where does the water <em className="text-primary">go?</em>
-          </h2>
+          <Label tone="tomato">Step 01 · Pick an area</Label>
+          <h2 className="mt-1 font-display text-[27px] font-bold leading-[1.02] tracking-tight text-foreground">Where does the water go?</h2>
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-            Pick a Sime Darby township, search any place, or drag the box. We load the terrain, satellite view, buildings and roads, then let it rain.
+            Pick a Sime Darby township, search any place, or drag the box. We load the ground, the satellite view, every street and house, then let it rain.
           </p>
+          <div className="mt-1 flex items-center gap-1 font-hand text-[19px] leading-none text-primary">
+            <svg viewBox="0 0 40 20" className="h-4 w-8 shrink-0" aria-hidden>
+              <path d="M2 4 C 12 2, 22 6, 30 14 M30 14 l-6 0 M30 14 l0 -6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            Casira went under on 4 June 2023 — start there
+          </div>
 
           <div ref={boxRef} className="relative mt-3">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -283,7 +287,7 @@ export function AreaPicker() {
                 else if (e.key === "Escape") setOpen(false);
               }}
               placeholder="Search Sime Darby townships or any place…"
-              className="h-10 w-full rounded-xl border border-border bg-black/40 pl-9 pr-9 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/60 focus:bg-black/60"
+              className="h-10 w-full rounded-xl border-[1.5px] border-border bg-card pl-9 pr-9 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/80 focus:border-foreground focus:shadow-[3px_3px_0_0_var(--foreground)]"
             />
             {searching ? (
               <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -295,7 +299,7 @@ export function AreaPicker() {
                   inputRef.current?.focus();
                 }}
                 title="Sime Darby Property townships"
-                className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-primary"
+                className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
               </button>
@@ -307,7 +311,7 @@ export function AreaPicker() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -6, scale: 0.98 }}
                   transition={{ duration: 0.18, ease: EASE.expressive }}
-                  className="absolute left-0 right-0 top-12 z-30 max-h-[min(440px,60vh)] origin-top overflow-auto rounded-xl border border-border-strong bg-card-solid p-1 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85)] scroll-thin"
+                  className="absolute left-0 right-0 top-12 z-30 max-h-[min(440px,60vh)] origin-top overflow-auto rounded-xl border-[1.5px] border-foreground bg-card-solid p-1 shadow-[4px_4px_0_0_var(--foreground)] scroll-thin"
                 >
                   {options.map((o, k) => {
                     const prev = options[k - 1];
@@ -320,7 +324,7 @@ export function AreaPicker() {
                     return (
                       <div key={o.kind === "sdp" ? o.t.id : `${o.h.lat}${o.h.lon}${k}`}>
                         {header && (
-                          <div className={cn("px-2.5 pb-1 pt-2 text-[9px] uppercase tracking-[0.16em]", k === 0 || o.kind === "place" ? "text-primary" : "text-muted-foreground/70")}>
+                          <div className={cn("px-2.5 pb-1 pt-2 font-mono text-[9px] uppercase tracking-[0.18em]", k === 0 || o.kind === "place" ? "text-primary" : "text-muted-foreground")}>
                             {header}
                           </div>
                         )}
@@ -331,7 +335,7 @@ export function AreaPicker() {
                           transition={{ delay: Math.min(k, 12) * 0.02 }}
                           onMouseEnter={() => setHl(k)}
                           onClick={() => choose(o)}
-                          className={cn("group flex w-full items-start gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors", k === hl ? "bg-primary/12" : "")}
+                          className={cn("group flex w-full items-start gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors", k === hl ? "bg-muted" : "")}
                         >
                           {o.kind === "sdp" ? (
                             <Building2 className={cn("mt-0.5 size-3.5 shrink-0 transition-colors", k === hl ? "text-primary" : "text-muted-foreground")} />
@@ -339,11 +343,11 @@ export function AreaPicker() {
                             <MapPin className={cn("mt-0.5 size-3.5 shrink-0 transition-colors", k === hl ? "text-primary" : "text-muted-foreground")} />
                           )}
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-xs text-foreground">{o.kind === "sdp" ? o.t.name : o.h.name}</span>
+                            <span className="block truncate text-xs font-medium text-foreground">{o.kind === "sdp" ? o.t.name : o.h.name}</span>
                             <span className="block truncate text-[10px] text-muted-foreground">{o.kind === "sdp" ? `${o.t.town}, ${o.t.state}` : o.h.detail}</span>
                           </span>
                           {o.kind === "sdp" && o.t.note && (
-                            <span className="mt-0.5 shrink-0 rounded bg-primary/10 px-1.5 py-px text-[9px] text-primary">{o.t.note.split(" · ")[0]}</span>
+                            <span className="mt-0.5 shrink-0 rounded border border-foreground bg-sun px-1.5 py-px font-mono text-[9px] uppercase tracking-wider text-foreground">{o.t.note.split(" · ")[0]}</span>
                           )}
                           <ArrowRight className={cn("mt-1 size-3 shrink-0 text-primary transition-all", k === hl ? "translate-x-0 opacity-100" : "-translate-x-1 opacity-0")} />
                         </motion.button>
@@ -362,15 +366,15 @@ export function AreaPicker() {
                 fly(CASIRA.lat, CASIRA.lon, CASIRA.size);
                 setQ("");
               }}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-black/30 px-2 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+              className="lift flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 text-[11px] text-foreground"
             >
               <Crosshair className="size-3.5" /> Casira (default)
             </button>
             <button
               onClick={() => setDrawMode((d) => !d)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] transition-colors",
-                drawMode ? "border-primary/70 bg-primary/15 text-primary" : "border-border bg-black/30 text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                "lift flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px]",
+                drawMode ? "inked bg-sun-soft text-foreground" : "border-border bg-card text-foreground",
               )}
             >
               <SquareDashedMousePointer className="size-3.5" /> {drawMode ? "Drag on the map…" : "Draw a box"}
@@ -390,31 +394,44 @@ export function AreaPicker() {
             />
           </div>
 
-          <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-black/25 px-3 py-2">
-            <div className="min-w-0">
-              <div className="truncate text-xs text-foreground">{area.label ?? "Custom area"}</div>
-              <div className="num text-[10px] text-muted-foreground">{fmtLatLon(area.lat, area.lon)}</div>
+          {/* the chosen area as a survey ticket */}
+          <div className="mt-3 rounded-xl border border-border bg-background/60">
+            <div className="flex items-start justify-between gap-2 px-3 pb-2 pt-2.5">
+              <div className="min-w-0">
+                <Label>Survey area</Label>
+                <div className="mt-0.5 truncate font-display text-sm font-semibold text-foreground">{area.label?.split(",")[0] ?? "Custom area"}</div>
+                <div className="truncate text-[10px] text-muted-foreground">{area.label?.split(",").slice(1).join(",").trim() || "Drawn on the map"}</div>
+              </div>
+              <span className="num shrink-0 rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                {area.size >= 1000 ? `${(area.size / 1000).toFixed(1)} km` : `${area.size} m`} sq
+              </span>
+            </div>
+            <div className="perforated" />
+            <div className="num flex justify-between px-3 py-1.5 text-[10px] text-muted-foreground">
+              <span>{fmtLatLon(area.lat, area.lon)}</span>
+              <span>
+                {g.nx}×{g.ny} cells
+              </span>
             </div>
           </div>
 
-          <button
+          <InkButton
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
             disabled={loading}
             onClick={() => getEngine().loadArea({ ...areaRef.current })}
-            className="group relative mt-3 flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-primary font-medium text-primary-foreground shadow-[0_10px_40px_-10px_rgba(94,234,212,0.7)] transition-transform active:scale-[0.98] disabled:opacity-60"
+            className="mt-3 h-11 w-full"
           >
-            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             {loading ? <Loader2 className="size-4 animate-spin" /> : null}
-            <span className="relative">{scene && sceneStatus === "ready" ? "Rebuild 3D scene" : "Build 3D scene"}</span>
-            <motion.span animate={{ x: hover ? 4 : 0 }} className="relative">
+            <span>{scene && sceneStatus === "ready" ? "Rebuild the town" : "Build the town in 3D"}</span>
+            <motion.span animate={{ x: hover ? 4 : 0 }}>
               <ArrowRight className="size-4" />
             </motion.span>
-          </button>
+          </InkButton>
         </Panel>
       </motion.div>
 
-      <div className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 rounded-full border border-border bg-black/50 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur sm:block">
+      <div className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 rounded-full border border-foreground bg-card px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-foreground shadow-[2px_2px_0_0_var(--foreground)] sm:block">
         Drag the box to move it · scroll to zoom
       </div>
     </div>

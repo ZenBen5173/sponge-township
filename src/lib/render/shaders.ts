@@ -59,20 +59,20 @@ varying vec3 vWorld;
 ${NOISE}
 ${HOLES}
 vec3 depthRamp(float d){
-  vec3 c0 = vec3(0.70, 0.90, 0.98);
-  vec3 c1 = vec3(0.31, 0.70, 0.91);
-  vec3 c2 = vec3(0.15, 0.39, 0.92);
-  vec3 c3 = vec3(0.30, 0.11, 0.58);
-  vec3 c4 = vec3(0.12, 0.10, 0.29);
+  vec3 c0 = vec3(0.86, 0.90, 1.00);
+  vec3 c1 = vec3(0.36, 0.52, 0.97);
+  vec3 c2 = vec3(0.24, 0.42, 0.96);
+  vec3 c3 = vec3(0.12, 0.25, 0.69);
+  vec3 c4 = vec3(0.07, 0.08, 0.20);
   if (d < 0.15) return mix(c0, c1, d / 0.15);
   if (d < 0.30) return mix(c1, c2, (d - 0.15) / 0.15);
   if (d < 0.60) return mix(c2, c3, (d - 0.30) / 0.30);
   return mix(c3, c4, clamp((d - 0.6) / 0.6, 0.0, 1.0));
 }
 vec3 diffRamp(float x){ // x = depth without − depth with (m): positive = design lowered the water
-  vec3 good = vec3(0.18, 0.85, 0.72);
-  vec3 neutral = vec3(0.55, 0.62, 0.70);
-  vec3 bad = vec3(0.98, 0.45, 0.22);
+  vec3 good = vec3(0.18, 0.62, 0.30);
+  vec3 neutral = vec3(0.80, 0.77, 0.70);
+  vec3 bad = vec3(1.00, 0.35, 0.21);
   if (x > 0.0) return mix(neutral, good, smoothstep(0.0, 0.2, x));
   return mix(neutral, bad, smoothstep(0.0, 0.2, -x));
 }
@@ -178,7 +178,7 @@ void main(){
   edge += step(0.5, abs(idAt(vUv - vec2(0.0, uTexel.y)) - id));
   edge = clamp(edge, 0.0, 1.0);
   bool isActive = abs(id - uActive) < 0.5;
-  vec3 col = isActive ? vec3(0.55, 1.0, 0.78) : vec3(0.36, 0.86, 0.92);
+  vec3 col = isActive ? vec3(1.0, 0.35, 0.21) : vec3(1.0, 0.85, 0.30);
   float sweep = smoothstep(0.0, 1.0, 1.0 - abs(fract((vWorld.x + vWorld.z) * 0.004 - uTime * 0.18) - 0.5) * 6.0);
   float a = (isActive ? 0.30 : 0.16) + edge * 0.75 + sweep * 0.12;
   gl_FragColor = vec4(col + sweep * 0.15, a);

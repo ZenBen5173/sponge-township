@@ -11,6 +11,17 @@ export type Phase = "pick" | "design" | "monitor";
 export type Tool = "select" | "square" | "garden" | "permeable" | "drain" | "inlet";
 export type RunStatus = "idle" | "starting" | "running" | "paused" | "done";
 
+/** A planner's handwritten note pinned to the 3D model. */
+export interface Note {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  tone: "tomato" | "water";
+  /** which run it describes: shown on that side of a split */
+  side: "base" | "design";
+}
+
 export interface NearStats {
   peakDepth: number;
   buildingsWet: number;
@@ -69,6 +80,7 @@ interface State {
   courtClosed: boolean;
   snapshot: Snapshot;
   toast: string | null;
+  notes: Note[];
   /** results within 150 m of the design: worst moment of each run */
   near: { base?: NearStats; design?: NearStats; live?: { base?: NearStats; design?: NearStats } };
   solver: "gpu" | "cpu" | null;
@@ -119,6 +131,7 @@ export const useApp = create<State>((set, get) => ({
   courtClosed: false,
   snapshot: {},
   toast: null,
+  notes: [],
   near: {},
   solver: null,
 
@@ -149,7 +162,8 @@ export const useApp = create<State>((set, get) => ({
     });
   },
   resetRun: () =>
-    set({ stats: {}, finals: {}, near: {}, history: emptyHistory(), alerts: [], courtClosed: false, snapshot: {}, run: { ...get().run, status: "idle", t: 0, designDirty: false } }),
+    set({ stats: {}, finals: {}, near: {}, notes: [], history: emptyHistory(), alerts: [], courtClosed: false, snapshot: {}, run:
+ { ...get().run, status: "idle", t: 0, designDirty: false } }),
   pushAlerts: (a) => a.length && set({ alerts: [...a, ...get().alerts].slice(0, 40) }),
   flash: (msg) => {
     clearTimeout(toastTimer);

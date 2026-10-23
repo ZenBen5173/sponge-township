@@ -1,25 +1,33 @@
 @import "tailwindcss";
 @import "maplibre-gl/dist/maplibre-gl.css";
 
-/* Sponge Township — a dark "storm instrument" palette. Semantic names follow shadcn so library components drop in. */
+/* Sponge Township — paper and ink. Warm canvas, white cards with a thin warm rule, ink outlines with a
+   hard offset shadow on whatever is active, flat colour used sparingly: tomato for action and danger,
+   ticket blue for water, sun for warnings, grass for good. Same family as the author's Movents. */
 :root {
-  --background: #070b10;
-  --foreground: #e8eef3;
-  --card: rgba(13, 20, 28, 0.78);
-  --card-solid: #0d141c;
-  --muted: #121b25;
-  --muted-foreground: #8a9aab;
-  --border: rgba(148, 178, 204, 0.14);
-  --border-strong: rgba(148, 178, 204, 0.28);
-  --primary: #5eead4; /* lagoon */
-  --primary-foreground: #04201c;
-  --water: #38bdf8;
-  --water-deep: #1d4ed8;
-  --warn: #fbbf24;
-  --danger: #fb6a4a;
-  --ok: #4ade80;
-  --sky-top: #1b2b3a;
-  --sky-bottom: #6d8799;
+  --background: #f7f5ef; /* canvas */
+  --foreground: #161514; /* ink */
+  --card: #ffffff;
+  --card-solid: #ffffff;
+  --muted: #efebe2;
+  --muted-foreground: #6b665e;
+  --border: #e4dfd3;
+  --border-strong: #161514;
+  --primary: #ff5a36; /* tomato */
+  --primary-foreground: #ffffff;
+  --tomato-ink: #c8381a;
+  --tomato-soft: #ffe1d8;
+  --water: #3d6cf5; /* ticket blue */
+  --water-soft: #dbe6ff;
+  --water-deep: #1f3fb0;
+  --warn: #b7791f;
+  --sun: #ffd84d;
+  --sun-soft: #fff3c4;
+  --danger: #c8381a;
+  --ok: #2f8f46;
+  --mint: #d3efca;
+  --peach: #ffc9b8;
+  --sand: #ece7dc;
 }
 
 @theme inline {
@@ -33,14 +41,28 @@
   --color-border-strong: var(--border-strong);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-tomato-ink: var(--tomato-ink);
+  --color-tomato-soft: var(--tomato-soft);
   --color-water: var(--water);
+  --color-water-soft: var(--water-soft);
   --color-water-deep: var(--water-deep);
   --color-warn: var(--warn);
+  --color-sun: var(--sun);
+  --color-sun-soft: var(--sun-soft);
   --color-danger: var(--danger);
   --color-ok: var(--ok);
-  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, Menlo, Consolas, monospace;
+  --color-mint: var(--mint);
+  --color-peach: var(--peach);
+  --color-sand: var(--sand);
+  --color-ink: var(--foreground);
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, Menlo, Consolas, monospace;
+  --font-hand: var(--font-caveat), "Comic Sans MS", cursive;
+  --shadow-hard: 3px 3px 0 0 #161514;
+  --shadow-hard-sm: 2px 2px 0 0 #161514;
+  --shadow-tomato: 3px 3px 0 0 #ff5a36;
+  --shadow-pop: 0 1px 0 rgba(22, 21, 20, 0.04), 0 10px 24px -12px rgba(22, 21, 20, 0.28);
 }
 
 html,
@@ -53,7 +75,8 @@ body {
 }
 
 ::selection {
-  background: rgba(94, 234, 212, 0.3);
+  background: var(--sun);
+  color: var(--foreground);
 }
 
 .num {
@@ -62,19 +85,113 @@ body {
   letter-spacing: -0.02em;
 }
 
-.glass {
-  background: linear-gradient(180deg, rgba(16, 25, 35, 0.86), rgba(9, 15, 22, 0.82));
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+/* small mono uppercase label: STATUS, PROJECTS… */
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted-foreground);
+}
+
+/* white card with a thin warm rule */
+.card {
+  background: var(--card);
   border: 1px solid var(--border);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 24px 48px -24px rgba(0, 0, 0, 0.7);
+  box-shadow: var(--shadow-pop);
+}
+
+/* the selected thing: ink outline + hard shadow */
+.inked {
+  border: 1.5px solid var(--foreground) !important;
+  box-shadow: 3px 3px 0 0 var(--foreground);
+}
+
+/* buttons that lift into a hard shadow */
+.lift {
+  transition:
+    transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lift:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--foreground);
+}
+.lift:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0 0 0 0 var(--foreground);
+}
+
+/* primary action: ink pill with a tomato edge */
+.btn-ink {
+  background: var(--foreground);
+  color: #fff;
+  border: 1.5px solid var(--foreground);
+  box-shadow: 3px 3px 0 0 var(--primary);
+  transition:
+    transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-ink:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--primary);
+}
+.btn-ink:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 0 var(--primary);
+}
+.btn-ink:disabled {
+  opacity: 0.5;
+  transform: none;
+}
+
+/* rubber stamp */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+  transform: rotate(-4deg);
+  mix-blend-mode: multiply;
+}
+
+/* ticket perforation (a dashed rule with notches at each end) */
+.perforated {
+  position: relative;
+  border-top: 1.5px dashed var(--border);
+}
+.perforated::before,
+.perforated::after {
+  content: "";
+  position: absolute;
+  top: -7px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+.perforated::before {
+  left: -7px;
+}
+.perforated::after {
+  right: -7px;
+}
+
+/* flood depth staff: red and white bands every 10 cm, numbered */
+.staff-bands {
+  background: repeating-linear-gradient(to top, #ffffff 0 10%, var(--primary) 10% 20%);
 }
 
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 178, 204, 0.25) transparent;
+  scrollbar-color: rgba(22, 21, 20, 0.22) transparent;
 }
 
 /* range inputs */
@@ -89,39 +206,41 @@ input[type="range"].slider {
 input[type="range"].slider::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 9px;
-  background: linear-gradient(90deg, var(--primary) var(--fill, 50%), rgba(148, 178, 204, 0.2) var(--fill, 50%));
+  background: linear-gradient(90deg, var(--foreground) var(--fill, 50%), var(--sand) var(--fill, 50%));
 }
 input[type="range"].slider::-moz-range-track {
   height: 4px;
   border-radius: 9px;
-  background: rgba(148, 178, 204, 0.2);
+  background: var(--sand);
 }
 input[type="range"].slider::-moz-range-progress {
   height: 4px;
   border-radius: 9px;
-  background: var(--primary);
+  background: var(--foreground);
 }
 input[type="range"].slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  margin-top: -6px;
-  width: 16px;
-  height: 16px;
+  margin-top: -7px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #e8fffb;
-  border: 3px solid var(--primary);
-  box-shadow: 0 0 0 4px rgba(94, 234, 212, 0.15);
-  transition: transform 0.15s, box-shadow 0.15s;
+  background: #fff;
+  border: 1.5px solid var(--foreground);
+  box-shadow: 2px 2px 0 0 var(--foreground);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
 }
 input[type="range"].slider:hover::-webkit-slider-thumb {
-  transform: scale(1.15);
-  box-shadow: 0 0 0 7px rgba(94, 234, 212, 0.18);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--primary);
 }
 input[type="range"].slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #e8fffb;
-  border: 3px solid var(--primary);
+  background: #fff;
+  border: 1.5px solid var(--foreground);
 }
 
 @keyframes curve-trace {
@@ -130,15 +249,6 @@ input[type="range"].slider::-moz-range-thumb {
   }
   to {
     stroke-dashoffset: 0;
-  }
-}
-
-@keyframes shimmer-x {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(100%);
   }
 }
 
@@ -163,6 +273,33 @@ input[type="range"].slider::-moz-range-thumb {
   }
 }
 
+@keyframes stamp-in {
+  0% {
+    transform: rotate(-4deg) scale(1.6);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-4deg) scale(0.94);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-4deg) scale(1);
+  }
+}
+.stamp-in {
+  animation: stamp-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -175,17 +312,15 @@ input[type="range"].slider::-moz-range-thumb {
 
 /* MapLibre chrome to match */
 .maplibregl-ctrl-attrib {
-  background: rgba(7, 11, 16, 0.7) !important;
-  color: #8a9aab !important;
+  background: rgba(247, 245, 239, 0.85) !important;
+  color: #6b665e !important;
   font-size: 10px !important;
 }
 .maplibregl-ctrl-attrib a {
-  color: #b9c7d4 !important;
+  color: #161514 !important;
 }
 .maplibregl-ctrl-group {
-  background: rgba(13, 20, 28, 0.9) !important;
-  border: 1px solid var(--border) !important;
-}
-.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
-  filter: invert(0.9);
+  background: #fff !important;
+  border: 1.5px solid #161514 !important;
+  box-shadow: 2px 2px 0 0 #161514 !important;
 }

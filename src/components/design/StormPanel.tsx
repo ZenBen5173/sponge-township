@@ -2,8 +2,7 @@
 import { ChevronDown, CloudRain, Pause, Play, RotateCcw, Scale, Square } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { GenerateButton } from "@/components/ui/generate-button";
-import { fmtClock, fmtDuration, Panel, Readout, Segmented, Slider, Toggle } from "@/components/ui/primitives";
+import { fmtClock, fmtDuration, InkButton, Label, Panel, Readout, Segmented, Slider, Stamp, Toggle } from "@/components/ui/primitives";
 import { getEngine } from "@/lib/engine";
 import { KAPAR_2023, peakIntensity } from "@/lib/sim/storm";
 import type { Stats } from "@/lib/sim/types";
@@ -36,9 +35,9 @@ export function StormPanel() {
   const design = finals.design ?? stats.design;
 
   return (
-    <Panel className="flex max-h-full flex-col p-3" glow="56,189,248">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-water">Storm</div>
-      <div className="font-display text-xl leading-tight">Let it rain</div>
+    <Panel className="flex max-h-full flex-col p-3">
+      <Label tone="water">Storm</Label>
+      <div className="font-display text-xl font-semibold leading-tight">Let it rain</div>
 
       <div className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 scroll-thin">
         <Segmented
@@ -52,9 +51,10 @@ export function StormPanel() {
         <AnimatePresence initial={false} mode="wait">
           {preset === "kapar" ? (
             <motion.div key="k" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <div className="rounded-xl border border-border bg-black/25 p-2.5 text-[11px] leading-snug text-muted-foreground">
-                <span className="num text-foreground">98.5 mm</span> in about <span className="num text-foreground">3 h</span> — the storm that flooded Bandar Bukit Raja. Front-loaded thunderstorm shape, peak{" "}
-                <span className="num text-foreground">{peakIntensity(storm).toFixed(0)} mm/h</span>.
+              <div className="relative rounded-xl border border-[#ecd98a] bg-sun-soft p-2.5 text-[11px] leading-snug text-foreground/80">
+                <span className="num font-bold text-foreground">98.5 mm</span> in about <span className="num font-bold text-foreground">3 h</span>. Front-loaded thunderstorm shape, peak{" "}
+                <span className="num font-bold text-foreground">{peakIntensity(storm).toFixed(0)} mm/h</span>.
+                <div className="mt-1 font-hand text-[17px] leading-none text-tomato-ink">the one that flooded Bandar Bukit Raja</div>
               </div>
             </motion.div>
           ) : (
@@ -81,7 +81,7 @@ export function StormPanel() {
           hint={`Outfalls to the Klang estuary back up: drains carry ${Math.round(params.tideFactor * 100)}% of normal until an hour after the rain.`}
         />
 
-        <button onClick={() => setAdv((a) => !a)} className="flex w-full items-center justify-between text-[11px] text-muted-foreground hover:text-foreground">
+        <button onClick={() => setAdv((a) => !a)} className="label flex w-full items-center justify-between transition-colors hover:!text-foreground">
           Model assumptions
           <ChevronDown className={cn("size-3.5 transition-transform", adv && "rotate-180")} />
         </button>
@@ -98,41 +98,39 @@ export function StormPanel() {
 
         {!busy ? (
           <div className="space-y-1.5">
-            <GenerateButton
-              hue={175}
-              label={run.status === "done" ? "Run again" : "Run storm"}
-              activeLabel="Raining…"
-              isGenerating={false}
-              onClick={() => eng.startRun()}
-              className="w-full"
-              icon={<CloudRain className="gen-btn-svg" strokeWidth={1.6} fill="none" stroke="#e8e8e8" />}
-            />
+            <InkButton onClick={() => eng.startRun()} className="group w-full py-3 text-[15px]">
+              <CloudRain className="size-[18px] transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" strokeWidth={2} />
+              {run.status === "done" ? "Run again" : "Run storm"}
+            </InkButton>
             <div className="text-center text-[10px] text-muted-foreground">
               {features.length ? "Runs without and with your design on the same storm." : "No features yet — runs the town as it is today."}
             </div>
           </div>
         ) : (
-          <div className="space-y-2 rounded-xl border border-border bg-black/25 p-2.5">
+          <div className="space-y-2 rounded-xl border-[1.5px] border-foreground bg-card p-2.5 shadow-[3px_3px_0_0_var(--water)]">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => (run.status === "paused" ? eng.resume() : eng.pause())}
-                className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground transition-transform active:scale-95"
+                className="btn-ink grid size-9 place-items-center rounded-lg"
                 title={run.status === "paused" ? "Resume" : "Pause"}
               >
                 {run.status === "paused" ? <Play className="size-4" /> : <Pause className="size-4" />}
               </button>
-              <button onClick={() => eng.stop()} className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground hover:text-foreground" title="Stop">
+              <button onClick={() => eng.stop()} className="lift grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground" title="Stop">
                 <Square className="size-3.5" />
               </button>
               <div className="flex-1 text-right">
-                <div className="num text-lg leading-none text-foreground">{fmtClock(run.t)}</div>
+                <div className="num text-xl font-bold leading-none text-foreground">{fmtClock(run.t)}</div>
                 <div className="text-[10px] text-muted-foreground">of {fmtClock(run.tEnd)} simulated</div>
                 {solver && (
-                  <div className={cn("mt-0.5 inline-block rounded px-1 text-[9px] uppercase tracking-wider", solver === "gpu" ? "bg-primary/15 text-primary" : "bg-white/5 text-muted-foreground")}>
+                  <div className={cn("label mt-1 inline-block rounded border px-1 !text-[9px]", solver === "gpu" ? "border-water/40 bg-water-soft !text-water-deep" : "border-border bg-muted")}>
                     {solver === "gpu" ? "WebGPU solver" : "CPU solver"}
                   </div>
                 )}
               </div>
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-sand">
+              <div className="h-full rounded-full bg-water transition-[width] duration-300" style={{ width: `${Math.min(100, (run.t / Math.max(1, run.tEnd)) * 100)}%` }} />
             </div>
             <Segmented size="sm" value={String(run.speed)} onChange={(v) => eng.setSpeed(Number(v))} options={SPEEDS} />
           </div>
@@ -140,7 +138,7 @@ export function StormPanel() {
 
         <Results base={features.length ? base : design ?? base} design={features.length ? design : undefined} done={run.status === "done"} />
         {run.status === "done" && (
-          <button onClick={() => eng.stop()} className="flex w-full items-center justify-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground">
+          <button onClick={() => eng.stop()} className="label flex w-full items-center justify-center gap-1.5 transition-colors hover:!text-foreground">
             <RotateCcw className="size-3" /> Clear results
           </button>
         )}
@@ -154,16 +152,18 @@ function pct(a?: number, b?: number) {
   return ((b - a) / a) * 100;
 }
 
-function Delta({ a, b, lowerIsBetter = true }: { a?: number; b?: number; lowerIsBetter?: boolean }) {
+/** The change from "without" to "with", stamped on: green when it helped, tomato when it made things worse. */
+function Delta({ a, b, lowerIsBetter = true, done }: { a?: number; b?: number; lowerIsBetter?: boolean; done?: boolean }) {
   const p = pct(a, b);
   if (p === null || !Number.isFinite(p)) return null;
   const good = lowerIsBetter ? p < -0.5 : p > 0.5;
   const bad = lowerIsBetter ? p > 0.5 : p < -0.5;
+  const text = Math.abs(p) < 0.5 ? "±0%" : `${p > 0 ? "+" : ""}${p.toFixed(0)}%`;
+  if (!done) return <span className={cn("num text-[10px]", good ? "text-ok" : bad ? "text-danger" : "text-muted-foreground")}>{text}</span>;
   return (
-    <span className={cn("num rounded px-1 py-px text-[10px]", good ? "bg-ok/15 text-ok" : bad ? "bg-danger/15 text-danger" : "bg-white/5 text-muted-foreground")}>
-      {p > 0 ? "+" : ""}
-      {p.toFixed(0)}%
-    </span>
+    <Stamp key={text} tone={good ? "ok" : bad ? "tomato" : "ink"} className="!text-[10px] !tracking-[0.06em]">
+      {text}
+    </Stamp>
   );
 }
 
@@ -183,19 +183,19 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-medium text-foreground">{done ? "Results" : "Live readouts"}</div>
+        <Label tone="ink">{done ? "Results" : "Live readouts"}</Label>
         {design && (
-          <div className="flex gap-2 text-[9px] uppercase tracking-wider text-muted-foreground">
+          <div className="label flex gap-2 !text-[9px]">
             <span>Without</span>
-            <span className="text-primary">With</span>
+            <span className="!text-ok">With</span>
           </div>
         )}
       </div>
       {design && (nb || nd) && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 px-2.5 py-2">
+        <div className="rounded-xl border-[1.5px] border-foreground bg-mint/60 px-2.5 py-2 shadow-[2px_2px_0_0_var(--foreground)]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-[0.1em] text-primary">Within 150 m of your design</span>
-            <span className="text-[9px] text-muted-foreground">{nb?.buildings ?? nd?.buildings} buildings</span>
+            <Label tone="ink" className="!tracking-[0.1em]">Within 150 m of your design</Label>
+            <span className="num text-[9px] text-muted-foreground">{nb?.buildings ?? nd?.buildings} buildings</span>
           </div>
           {[
             ["Deepest street", nb?.peakDepth, nd?.peakDepth, "m", 2],
@@ -203,13 +203,13 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
             ["Street > 15 cm", nb?.floodedRoadArea, nd?.floodedRoadArea, "m²", 0],
           ].map(([l, a, b, u, d]) => (
             <div key={l as string} className="num mt-1 flex items-center justify-between gap-2 text-[11px]">
-              <span className="font-sans text-muted-foreground">{l}</span>
+              <span className="font-sans text-foreground/70">{l}</span>
               <span className="flex items-center gap-1.5">
                 <span className="text-foreground">{(a as number | undefined)?.toFixed(d as number) ?? "—"}</span>
                 <span className="text-muted-foreground">→</span>
-                <span className="text-ok">{(b as number | undefined)?.toFixed(d as number) ?? "—"}</span>
+                <span className="font-bold text-ok">{(b as number | undefined)?.toFixed(d as number) ?? "—"}</span>
                 <span className="text-muted-foreground">{u}</span>
-                <Delta a={a as number | undefined} b={b as number | undefined} />
+                <Delta a={a as number | undefined} b={b as number | undefined} done={done} />
               </span>
             </div>
           ))}
@@ -217,14 +217,14 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
         </div>
       )}
       {rows.map((r) => (
-        <div key={r.label} className="rounded-xl border border-border bg-black/25 px-2.5 py-2">
+        <div key={r.label} className="lift rounded-xl border border-border bg-card px-2.5 py-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{r.label}</span>
-            {design && <Delta a={r.a} b={r.b} />}
+            <Label className="!tracking-[0.1em]">{r.label}</Label>
+            {design && <Delta a={r.a} b={r.b} done={done} />}
           </div>
           <div className="mt-0.5 flex items-end justify-between gap-2">
-            <Readout label="" value={r.a} unit={r.unit} decimals={r.d} tone={design ? "default" : "water"} className="[&>div:first-child]:hidden" />
-            {design && <Readout label="" value={r.b} unit={r.unit} decimals={r.d} tone="good" className="text-right [&>div:first-child]:hidden [&>div]:justify-end" />}
+            <Readout label="" value={r.a} unit={r.unit} decimals={r.d} tone={design ? "default" : "water"} />
+            {design && <Readout label="" value={r.b} unit={r.unit} decimals={r.d} tone="good" className="text-right [&>div]:justify-end" />}
           </div>
           {!done && (
             <div className="num text-[9px] text-muted-foreground">
@@ -235,39 +235,39 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
         </div>
       ))}
       {sq.map((f) => (
-        <div key={f.id} className="rounded-xl border border-water/30 bg-water/5 px-2.5 py-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-foreground">{f.name}</span>
-            <span className="num text-[10px] text-water">{Math.round((f.fill ?? 0) * 100)}% full</span>
-          </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <motion.div className="h-full rounded-full bg-gradient-to-r from-sky-500 to-teal-300" animate={{ width: `${Math.min(100, (f.fill ?? 0) * 100)}%` }} transition={{ duration: 0.3 }} />
-          </div>
-          <div className="mt-1.5 grid grid-cols-2 gap-2">
-            <Readout label="Stored now" value={f.stored} unit="m³" decimals={0} tone="water" />
-            <Readout label="Peak stored" value={f.peakStored} unit="m³" decimals={0} />
-            <Readout label="Level" value={(f.level ?? 0) * 100} unit="cm" decimals={0} />
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Empty after</div>
-              <div className="num text-sm leading-tight text-foreground">
-                {f.emptyAt != null
-                  ? fmtDuration(f.emptyAt - durationOf())
-                  : f.peakStored < 1
-                    ? "—"
-                    : done || (design?.t ?? 0) > durationOf()
-                      ? f.projectedEmpty == null
-                        ? "blocked"
-                        : `~${fmtDuration(Math.max(0, (design?.t ?? 0) - durationOf()) + f.projectedEmpty)}`
-                      : "filling…"}
+        <div key={f.id} className="flex gap-2.5 rounded-xl border border-water/30 bg-water-soft/50 px-2.5 py-2">
+          <CourtStaff fill={f.fill ?? 0} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between">
+              <span className="truncate text-[12px] font-semibold text-foreground">{f.name}</span>
+              <span className="num text-[10px] font-bold text-water-deep">{Math.round((f.fill ?? 0) * 100)}% full</span>
+            </div>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              <Readout label="Stored now" value={f.stored} unit="m³" decimals={0} tone="water" />
+              <Readout label="Peak stored" value={f.peakStored} unit="m³" decimals={0} />
+              <Readout label="Level" value={(f.level ?? 0) * 100} unit="cm" decimals={0} />
+              <div>
+                <div className="label">Empty after</div>
+                <div className="num text-sm leading-tight text-foreground">
+                  {f.emptyAt != null
+                    ? fmtDuration(f.emptyAt - durationOf())
+                    : f.peakStored < 1
+                      ? "—"
+                      : done || (design?.t ?? 0) > durationOf()
+                        ? f.projectedEmpty == null
+                          ? "blocked"
+                          : `~${fmtDuration(Math.max(0, (design?.t ?? 0) - durationOf()) + f.projectedEmpty)}`
+                        : "filling…"}
+                </div>
+                <div className="text-[9px] text-muted-foreground">after rain stops{f.emptyAt == null && f.peakStored > 1 && (done || (design?.t ?? 0) > durationOf()) ? " (projected)" : ""}</div>
               </div>
-              <div className="text-[9px] text-muted-foreground">after rain stops{f.emptyAt == null && f.peakStored > 1 && (done || (design?.t ?? 0) > durationOf()) ? " (projected)" : ""}</div>
             </div>
           </div>
         </div>
       ))}
       {others.length > 0 && (
-        <div className="rounded-xl border border-border bg-black/25 px-2.5 py-2">
-          <div className="mb-1 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Other features</div>
+        <div className="rounded-xl border border-border bg-card px-2.5 py-2">
+          <Label className="mb-1 !tracking-[0.1em]">Other features</Label>
           {others.map((f) => (
             <div key={f.id} className="num flex justify-between py-0.5 text-[11px]">
               <span className="truncate font-sans text-foreground">{f.name}</span>
@@ -283,6 +283,18 @@ function Results({ base, design, done }: { base?: Stats; design?: Stats; done: b
   );
 }
 
+/** A little flood staff: red-and-white bands, water rising up it as the court fills. */
+function CourtStaff({ fill }: { fill: number }) {
+  const h = Math.min(100, Math.max(0, fill * 100));
+  return (
+    <div className="relative w-3.5 shrink-0 self-stretch overflow-hidden rounded-[3px] border-[1.5px] border-foreground staff-bands" title={`${Math.round(h)}% full`}>
+      <motion.div className="absolute inset-x-0 bottom-0 bg-water/80" animate={{ height: `${h}%` }} transition={{ duration: 0.3 }}>
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-water-deep" />
+      </motion.div>
+    </div>
+  );
+}
+
 function durationOf() {
   return useApp.getState().storm.durationMin * 60;
 }
@@ -290,24 +302,27 @@ function durationOf() {
 function BalanceCard({ s }: { s: Stats }) {
   const b = s.balance;
   const items = [
-    ["On the ground", b.surface, "#38bdf8"],
-    ["In features", b.featureStore, "#5eead4"],
-    ["Soaked in", b.infiltrated, "#4ade80"],
-    ["Down the drains", b.drained, "#a78bfa"],
-    ["Flowed out of area", b.leftArea, "#94a3b8"],
+    ["On the ground", b.surface, "#3d6cf5"],
+    ["In features", b.featureStore, "#1f3fb0"],
+    ["Soaked in", b.infiltrated, "#2f8f46"],
+    ["Down the drains", b.drained, "#161514"],
+    ["Flowed out of area", b.leftArea, "#c99b63"],
   ] as const;
   const total = Math.max(1, b.rain + b.initial);
+  const closes = Math.abs(b.error) < 1e-4;
   return (
-    <div className="rounded-xl border border-border bg-black/25 px-2.5 py-2">
+    <div className="rounded-xl border border-border bg-card px-2.5 py-2">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+        <Label className="flex items-center gap-1 !tracking-[0.1em]">
           <Scale className="size-3" /> Water balance
-        </span>
-        <span className={cn("num text-[10px]", Math.abs(b.error) < 1e-4 ? "text-ok" : "text-warn")} title="(rain in − everything accounted for) ÷ rain in">
-          {Math.abs(b.error) < 1e-12 ? "closes exactly" : `error ${(Math.abs(b.error) * 100).toPrecision(1)}%`}
+        </Label>
+        <span title="(rain in − everything accounted for) ÷ rain in">
+          <Stamp tone={closes ? "ok" : "warn"} animate={false} className="!text-[9px] !tracking-[0.08em]">
+            {Math.abs(b.error) < 1e-12 ? "closes exactly" : closes ? `balanced ±${(Math.abs(b.error) * 100).toPrecision(1)}%` : `off by ${(Math.abs(b.error) * 100).toPrecision(1)}%`}
+          </Stamp>
         </span>
       </div>
-      <div className="mt-1.5 flex h-2 overflow-hidden rounded-full">
+      <div className="mt-2 flex h-2.5 overflow-hidden rounded-full border border-foreground">
         {items.map(([l, v, c]) => (
           <div key={l} style={{ width: `${(v / total) * 100}%`, background: c }} title={l} />
         ))}

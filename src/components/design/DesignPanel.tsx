@@ -2,7 +2,7 @@
 import { Droplets, Footprints, Grid2x2, MousePointer2, Route, Sprout, Trash2, Waves, Wand2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
-import { Panel, Slider } from "@/components/ui/primitives";
+import { Label, Panel, Slider } from "@/components/ui/primitives";
 import { getEngine } from "@/lib/engine";
 import { FEATURE_INFO, makeRect } from "@/lib/features";
 import { EASE } from "@/lib/motion";
@@ -143,8 +143,8 @@ export function DesignPanel() {
     <Panel className="flex max-h-full flex-col p-3">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-primary">Step 2 · Design</div>
-          <div className="font-display text-xl leading-tight">Make it a sponge</div>
+          <Label tone="tomato">Step 2 · Design</Label>
+          <div className="font-display text-xl font-semibold leading-tight">Make it a sponge</div>
         </div>
       </div>
 
@@ -155,13 +155,15 @@ export function DesignPanel() {
             onClick={() => set({ tool: t.id, drawing: null })}
             title={`${t.label} (${t.key})`}
             className={cn(
-              "group relative flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[10px] transition-all",
-              tool === t.id ? "border-primary/70 bg-primary/15 text-primary" : "border-border bg-black/25 text-muted-foreground hover:-translate-y-0.5 hover:border-border-strong hover:text-foreground",
+              "group relative flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[10px] font-medium transition-all duration-150",
+              tool === t.id
+                ? "-translate-x-px -translate-y-px border-[1.5px] border-foreground bg-foreground text-white shadow-[3px_3px_0_0_var(--primary)]"
+                : "border-border bg-card text-muted-foreground hover:-translate-x-px hover:-translate-y-px hover:border-foreground hover:text-foreground hover:shadow-[3px_3px_0_0_var(--foreground)]",
             )}
           >
-            <span className="transition-transform group-hover:scale-110">{t.icon}</span>
+            <span className={cn("transition-transform duration-200 group-hover:-rotate-6 group-hover:scale-110", tool === t.id && "text-primary")}>{t.icon}</span>
             {t.label}
-            <span className="absolute right-1 top-0.5 font-mono text-[8px] opacity-40">{t.key}</span>
+            <span className="absolute right-1 top-0.5 font-mono text-[8px] opacity-50">{t.key}</span>
           </button>
         ))}
       </div>
@@ -184,8 +186,8 @@ export function DesignPanel() {
         ) : (
           <>
             <div className="mt-2 flex items-center justify-between">
-              <div className="text-[11px] font-medium text-foreground">Open space found</div>
-              <button onClick={() => set({ showCandidates: !showCandidates })} className="text-[10px] text-muted-foreground hover:text-foreground">
+              <Label tone="ink">Open space found</Label>
+              <button onClick={() => set({ showCandidates: !showCandidates })} className="label transition-colors hover:!text-foreground">
                 {showCandidates ? "Hide" : "Show"}
               </button>
             </div>
@@ -202,19 +204,22 @@ export function DesignPanel() {
                     getEngine().scene3d?.focus(c.bx, c.by, 200);
                   }}
                   className={cn(
-                    "group w-full rounded-xl border p-2 text-left transition-colors",
-                    k === active ? "border-primary/60 bg-primary/10" : "border-border bg-black/20 hover:border-border-strong",
+                    "group relative w-full rounded-xl border bg-card p-2 text-left transition-all duration-150",
+                    k === active ? "-translate-x-px -translate-y-px border-[1.5px] border-foreground shadow-[3px_3px_0_0_var(--primary)]" : "border-border hover:-translate-x-px hover:-translate-y-px hover:shadow-[3px_3px_0_0_var(--foreground)]",
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium text-foreground">
-                      {c.label}
-                      <span className="ml-1.5 font-normal text-muted-foreground">{c.name ?? c.kind}</span>
+                    <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <span className={cn("num grid size-5 shrink-0 place-items-center rounded-md text-[10px]", k === active ? "bg-primary text-white" : "bg-muted text-foreground")}>{c.label.replace(/^Site\s*/, "")}</span>
+                      <span className="truncate font-normal text-muted-foreground">{c.name ?? c.kind}</span>
                     </span>
-                    <span className="num text-[11px] text-primary">{c.score}</span>
+                    <span className="num text-[13px] font-bold text-foreground">
+                      {c.score}
+                      <span className="text-[9px] font-normal text-muted-foreground">/100</span>
+                    </span>
                   </div>
-                  <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
-                    <motion.div className="h-full rounded-full bg-gradient-to-r from-teal-400 to-sky-400" initial={{ width: 0 }} animate={{ width: `${c.score}%` }} transition={{ delay: 0.3 + k * 0.05, duration: 0.7 }} />
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-sand">
+                    <motion.div className={cn("h-full rounded-full", k === active ? "bg-primary" : "bg-foreground")} initial={{ width: 0 }} animate={{ width: `${c.score}%` }} transition={{ delay: 0.3 + k * 0.05, duration: 0.7 }} />
                   </div>
                   <div className="num mt-1 flex flex-wrap gap-x-2 text-[10px] text-muted-foreground">
                     <span>{Math.round(c.area).toLocaleString()} m²</span>
@@ -224,7 +229,7 @@ export function DesignPanel() {
                     <span className={c.fits ? "text-ok" : c.courtW ? "text-warn" : "text-danger"}>{c.fits ? "fits 40×30" : c.courtW ? `fits ${c.courtW}×${c.courtL}` : "too tight"}</span>
                   </div>
                   {c.floodedNear !== undefined && (
-                    <div className={cn("mt-1 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px]", c.floodedNear > 0 ? "bg-danger/10 text-danger" : "bg-ok/10 text-ok")}>
+                    <div className={cn("mt-1.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium", c.floodedNear > 0 ? "bg-tomato-soft text-tomato-ink" : "bg-mint text-ok")}>
                       <Waves className="size-3" />
                       {c.floodedNear > 0
                         ? `${c.floodedNear} flooded homes ≤150 m · streets to ${Math.round((c.deepestNear ?? 0) * 100)} cm`
@@ -237,29 +242,29 @@ export function DesignPanel() {
             {!!scene?.candidates.length && (
               <button
                 onClick={autoDesign}
-                className="group mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/50 bg-primary/5 px-3 py-2 text-[11px] text-primary transition-colors hover:bg-primary/15"
+                className="group mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-foreground bg-sun-soft px-3 py-2 text-[11px] font-semibold text-foreground transition-all duration-150 hover:-translate-x-px hover:-translate-y-px hover:border-solid hover:bg-sun hover:shadow-[3px_3px_0_0_var(--foreground)]"
               >
-                <Wand2 className="size-3.5 transition-transform group-hover:rotate-12" /> Suggest a layout at {scene.candidates[active]?.label}
+                <Wand2 className="size-3.5 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" /> Suggest a layout at {scene.candidates[active]?.label}
               </button>
             )}
-            <p className="mt-2 text-[10px] leading-snug text-muted-foreground/80">
+            <p className="mt-2 text-[10px] leading-snug text-muted-foreground">
               {scene?.candidates.some((c) => c.floodedNear !== undefined) ? "Flood risk from your last run. " : "Run the storm once to see flood risk around each site. "}
               Found from OpenStreetMap land use plus green pixels in the satellite image. Ranked by whether a 40 × 30 m court fits, how much ground drains to it, how low it sits and homes nearby. Check ownership with SDP before use.
             </p>
 
             {features.length > 0 && (
               <>
-                <div className="mt-3 text-[11px] font-medium text-foreground">Your design</div>
+                <Label tone="ink" className="mt-3">Your design</Label>
                 <div className="mt-1 space-y-1">
                   {features.map((f) => (
                     <button
                       key={f.id}
                       onClick={() => set({ selectedId: f.id })}
-                      className="flex w-full items-center gap-2 rounded-lg border border-border bg-black/20 px-2 py-1.5 text-left text-[11px] transition-colors hover:border-border-strong"
+                      className="lift group flex w-full items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5 text-left text-[11px]"
+                      style={{ borderLeft: `4px solid ${FEATURE_INFO[f.kind].color}` }}
                     >
-                      <span className="size-2 rounded-full" style={{ background: FEATURE_INFO[f.kind].color }} />
-                      <span className="flex-1 truncate">{f.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{FEATURE_INFO[f.kind].short}</span>
+                      <span className="flex-1 truncate font-medium">{f.name}</span>
+                      <span className="label !text-[9px] transition-colors group-hover:!text-foreground">{FEATURE_INFO[f.kind].short}</span>
                     </button>
                   ))}
                 </div>
@@ -284,11 +289,15 @@ function Inspector({ f }: { f: Feature }) {
           <input
             value={f.name}
             onChange={(e) => update(f.id, { name: e.target.value })}
-            className="w-full bg-transparent text-sm font-medium text-foreground outline-none focus:text-primary"
+            className="-mx-1 w-full rounded-md bg-transparent px-1 font-display text-base font-semibold text-foreground outline-none transition-colors hover:bg-muted focus:bg-sun-soft"
           />
+          <div className="mb-1 flex items-center gap-1.5">
+            <span className="size-2 rounded-full" style={{ background: info.color }} />
+            <Label className="!text-[9px]">{info.label}</Label>
+          </div>
           <div className="text-[10px] leading-snug text-muted-foreground">{info.blurb}</div>
         </div>
-        <button onClick={() => remove(f.id)} title="Delete (Del)" className="rounded-lg border border-border p-1.5 text-muted-foreground transition-colors hover:border-danger/60 hover:text-danger">
+        <button onClick={() => remove(f.id)} title="Delete (Del)" className="lift rounded-lg border border-border bg-card p-1.5 text-muted-foreground hover:border-foreground hover:text-danger">
           <Trash2 className="size-3.5" />
         </button>
       </div>
@@ -310,13 +319,13 @@ function Inspector({ f }: { f: Feature }) {
                 format={(v) => `Ø ${v} mm`}
                 hint="Smaller pipe = holds water longer, empties slower."
               />
-              <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-black/25 p-2.5">
+              <div className="grid grid-cols-2 gap-2 rounded-xl border-[1.5px] border-foreground bg-water-soft/60 p-2.5 shadow-[2px_2px_0_0_var(--water)]">
                 <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Storage</div>
-                  <div className="num text-lg text-water">{Math.round(f.w * f.l * f.depth).toLocaleString()} m³</div>
+                  <Label>Storage</Label>
+                  <div className="num text-lg font-bold text-water-deep">{Math.round(f.w * f.l * f.depth).toLocaleString()} m³</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Like</div>
+                  <Label>Like</Label>
                   <div className="text-[11px] leading-tight text-foreground">
                     {f.w * f.l * f.depth > 1500 ? "Benthemplein, Rotterdam (≈1,700 m³)" : "South Jamaica Houses, NYC (≈1,250 m³)"}
                   </div>
@@ -348,11 +357,12 @@ function Inspector({ f }: { f: Feature }) {
           max={20}
           onChange={(v) => update(f.id, { capacityPerM: v / 1000 })}
           format={(v) => `${v} L/s/m`}
-          hint={`Total ≈ ${Math.round(f.capacityPerM * 1000 * f.pts.slice(1).reduce((a, p, k) => a + Math.hypot(p[0] - f.pts[k][0], p[1] - f.pts[k][1]), 0))} L/s. Teal = feeds a square.`}
+          hint={`Total ≈ ${Math.round(f.capacityPerM * 1000 * f.pts.slice(1).reduce((a, p, k) => a + Math.hypot(p[0] - f.pts[k][0], p[1] - f.pts[k][1]), 0))} L/s. Blue = feeds a square.`}
         />
       )}
       {f.kind === "inlet" && <Slider label="Capacity" value={Math.round(f.capacity * 1000)} min={20} max={300} step={10} onChange={(v) => update(f.id, { capacity: v / 1000 })} format={(v) => `${v} L/s`} />}
-      <button onClick={() => set({ selectedId: null })} className="w-full rounded-lg border border-border py-1.5 text-[11px] text-muted-foreground hover:text-foreground">
+      <button onClick={() => set({ selectedId: null })} className="lift w-full rounded-lg border-[1.5px] border-foreground bg-card py-1.5 text-[11px] font-semibold text-foreground">
+
         Done
       </button>
       <div className="flex items-center gap-1 text-[10px] text-muted-foreground">

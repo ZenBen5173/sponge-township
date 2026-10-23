@@ -28,6 +28,8 @@ export function Viewport() {
   const activeCandidate = useApp((s) => s.activeCandidate);
   const runStatus = useApp((s) => s.run.status);
   const shade = useApp((s) => s.shade);
+  const notes = useApp((s) => s.notes);
+
   const [hoverPt, setHoverPt] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -188,8 +190,9 @@ export function Viewport() {
         ref={sky}
         className="absolute inset-0"
         style={{
+          // a planning model on a paper desk; the room dims a little while it rains
           background:
-            "linear-gradient(180deg, color-mix(in oklab, #1d3347 calc((1 - var(--storm, 0)) * 100%), #0c1218) 0%, color-mix(in oklab, #7f9bb0 calc((1 - var(--storm, 0)) * 100%), #2d3a44) 62%, color-mix(in oklab, #b8c6cf calc((1 - var(--storm, 0)) * 100%), #3a4650) 100%)",
+            "radial-gradient(ellipse at 50% 38%, color-mix(in oklab, #fbfaf6 calc((1 - var(--storm, 0) * 0.6) * 100%), #a9a59a) 0%, color-mix(in oklab, #efebe2 calc((1 - var(--storm, 0) * 0.6) * 100%), #8f8b80) 70%), #efebe2",
         }}
       />
       <div
@@ -223,8 +226,8 @@ export function Viewport() {
                 >
                   <div
                     className={cn(
-                      "flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-medium backdrop-blur",
-                      active ? "border-primary/70 bg-primary/25 text-primary" : "border-white/20 bg-black/45 text-white/85",
+                      "flex items-center gap-1.5 whitespace-nowrap rounded-md border-[1.5px] border-foreground px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider shadow-[2px_2px_0_0_var(--foreground)]",
+                      active ? "bg-primary text-white" : "bg-card text-foreground",
                     )}
                   >
                     <span className="relative flex size-1.5">
@@ -232,6 +235,7 @@ export function Viewport() {
                       <span className="relative size-1.5 rounded-full bg-current" />
                     </span>
                     {c.label} · {(c.area / 1000).toFixed(1)}k m²
+                    {c.floodedNear ? <span className={cn("rounded px-1", active ? "bg-white/25" : "bg-tomato-soft text-tomato-ink")}>{c.floodedNear} wet</span> : null}
                   </div>
                 </motion.div>
               );
@@ -247,8 +251,11 @@ export function Viewport() {
             return (
               <div key={f.id} className="absolute" style={{ left: p.x, top: p.y, transform: "translate(-50%, -130%)" }}>
                 <div
-                  className={cn("whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] backdrop-blur", f.id === selectedId ? "border-sky-300/80 bg-sky-400/25 text-white" : "border-white/15 bg-black/50 text-white/80")}
-                  style={{ boxShadow: `inset 2px 0 0 ${info.color}` }}
+                  className={cn(
+                    "whitespace-nowrap rounded-md border bg-card px-1.5 py-0.5 text-[10px] font-medium text-foreground",
+                    f.id === selectedId ? "border-[1.5px] border-foreground shadow-[2px_2px_0_0_var(--foreground)]" : "border-border shadow-[var(--shadow-pop)]",
+                  )}
+                  style={{ borderLeft: `4px solid ${info.color}` }}
                 >
                   {f.name}
                 </div>
@@ -267,13 +274,13 @@ export function Viewport() {
                   })
                   .join(" ")}
                 fill="none"
-                stroke="#5eead4"
+                stroke="#161514"
                 strokeWidth={3}
                 strokeDasharray="6 5"
               />
               {drawing.map(([x, y], k) => {
                 const p = proj(x, y, 0.3);
-                return <circle key={k} cx={p.x} cy={p.y} r={4} fill="#04201c" stroke="#5eead4" strokeWidth={2} />;
+                return <circle key={k} cx={p.x} cy={p.y} r={4} fill="#ffffff" stroke="#161514" strokeWidth={2} />;
               })}
             </svg>
           )}
@@ -299,6 +306,42 @@ export function Viewport() {
           {/* handles for the selected rectangle */}
           {sel && "w" in sel && view !== "without" && <RectHandles f={sel} proj={proj} onStart={startHandle} />}
 
+          {/* the planner's notes, pinned after a run */}
+          <AnimatePresence>
+            {notes
+              .filter((n) => view !== "without" || n.side !== "design")
+              .filter((n) => view === "without" || view === "split" || n.side !== "base" || features.length === 0)
+              .map((n, k) => {
+                const p = proj(n.x, n.y, 2);
+                if (!p.visible) return null;
+                return (
+                  <motion.div
+                    key={n.id}
+                    initial={{ opacity: 0, scale: 0.8, rotate: -6 }}
+                    animate={{ opacity: 1, scale: 1, rotate: k % 2 ? 2 : -3 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ delay: 0.15 + k * 0.12, type: "spring", stiffness: 260, damping: 18 }}
+                    className="absolute"
+                    style={{ left: p.x, top: p.y }}
+                  >
+                    <svg viewBox="0 0 60 50" className="absolute -left-1 -top-[46px] h-12 w-14 overflow-visible" aria-hidden>
+                      <path d="M54 4 C 40 6, 18 14, 6 40" fill="none" stroke={n.tone === "water" ? "#3d6cf5" : "#ff5a36"} strokeWidth="2" strokeLinecap="round" />
+                      <path d="M6 40 l1 -9 M6 40 l8 -4" fill="none" stroke={n.tone === "water" ? "#3d6cf5" : "#ff5a36"} strokeWidth="2" strokeLinecap="round" />
+                      <circle cx="6" cy="40" r="3" fill={n.tone === "water" ? "#3d6cf5" : "#ff5a36"} />
+                    </svg>
+                    <div
+                      className={cn(
+                        "absolute left-12 -top-[70px] whitespace-nowrap rounded-md border-[1.5px] bg-card px-2 py-0.5 font-hand text-[21px] leading-tight shadow-[2px_2px_0_0_var(--foreground)]",
+                        n.tone === "water" ? "border-water text-water-deep" : "border-primary text-tomato-ink",
+                      )}
+                    >
+                      {n.text}
+                    </div>
+                  </motion.div>
+                );
+              })}
+          </AnimatePresence>
+
           {/* split divider */}
           {view === "split" && <SplitDivider split={split} />}
 
@@ -308,15 +351,16 @@ export function Viewport() {
 
       <AnimatePresence>
         {status === "loading" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 grid place-items-center bg-background/80 backdrop-blur-sm">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 grid place-items-center bg-background">
             <div className="flex flex-col items-center gap-4 text-center">
               <MathCurveLoader curve="hypotrochoid" size={72} speed={2.4} className="text-primary" label="Building the scene" />
               <div>
-                <div className="font-display text-2xl text-foreground">Building the town</div>
-                <div className="mt-1 text-xs text-muted-foreground">{loadLabel}</div>
+                <div className="label !text-primary">Surveying</div>
+                <div className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground">Building the town</div>
+                <div className="mt-1 font-mono text-[11px] text-muted-foreground">{loadLabel}</div>
               </div>
-              <div className="h-1 w-56 overflow-hidden rounded-full bg-white/10">
-                <motion.div className="h-full rounded-full bg-primary" animate={{ width: `${Math.round(loadProgress * 100)}%` }} />
+              <div className="h-2.5 w-60 overflow-hidden rounded-full border-[1.5px] border-foreground bg-card">
+                <motion.div className="h-full bg-primary" animate={{ width: `${Math.round(loadProgress * 100)}%` }} />
               </div>
             </div>
           </motion.div>
@@ -324,9 +368,9 @@ export function Viewport() {
         {status === "error" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 grid place-items-center bg-background/85">
             <div className="max-w-sm text-center">
-              <div className="font-display text-2xl">Couldn&apos;t build this area</div>
+              <div className="font-display text-2xl font-bold tracking-tight">Couldn&apos;t build this area</div>
               <p className="mt-2 text-xs text-muted-foreground">{sceneError}</p>
-              <button onClick={() => useApp.getState().set({ phase: "pick" })} className="mt-4 rounded-lg border border-border px-3 py-1.5 text-xs hover:border-primary/60">
+              <button onClick={() => useApp.getState().set({ phase: "pick" })} className="lift mt-4 rounded-lg border-[1.5px] border-foreground bg-card px-3 py-1.5 text-xs">
                 Back to the map
               </button>
             </div>
@@ -356,7 +400,7 @@ function RectHandles({
   return (
     <>
       <svg className="absolute inset-0 h-full w-full">
-        <line x1={pt.x} y1={pt.y} x2={pk.x} y2={pk.y} stroke="#7dd3fc" strokeWidth={1.5} />
+        <line x1={pt.x} y1={pt.y} x2={pk.x} y2={pk.y} stroke="#161514" strokeWidth={1.5} strokeDasharray="3 3" />
       </svg>
       {corners.map(([x, y], k) => {
         const p = proj(x, y, 1);
@@ -364,7 +408,7 @@ function RectHandles({
           <div
             key={k}
             onPointerDown={(e) => onStart(e, "corner", f.id, k)}
-            className="pointer-events-auto absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize rounded-[4px] border-2 border-sky-300 bg-[#04131c] shadow-[0_0_0_4px_rgba(125,211,252,0.15)] transition-transform hover:scale-125"
+            className="pointer-events-auto absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize rounded-[3px] border-2 border-foreground bg-card shadow-[2px_2px_0_0_var(--foreground)] transition-transform hover:scale-125 hover:bg-sun"
             style={{ left: p.x, top: p.y }}
             title="Drag to resize"
           />
@@ -372,11 +416,11 @@ function RectHandles({
       })}
       <div
         onPointerDown={(e) => onStart(e, "rotate", f.id)}
-        className="pointer-events-auto absolute size-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-sky-300 bg-sky-400/30 transition-transform hover:scale-125"
+        className="pointer-events-auto absolute size-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-foreground bg-primary shadow-[2px_2px_0_0_var(--foreground)] transition-transform hover:scale-125"
         style={{ left: pk.x, top: pk.y }}
         title="Drag to rotate"
       />
-      <div className="absolute rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-sky-100 num" style={{ left: pk.x + 12, top: pk.y - 8 }}>
+      <div className="num absolute rounded border border-foreground bg-card px-1.5 py-0.5 text-[10px] text-foreground" style={{ left: pk.x + 12, top: pk.y - 8 }}>
         {f.w} × {f.l} m{f.kind === "square" ? ` · ${(f.w * f.l * f.depth).toFixed(0)} m³` : ""}
       </div>
       {!inRect(f, f.cx, f.cy) && null}
@@ -386,11 +430,13 @@ function RectHandles({
 
 function SplitDivider({ split }: { split: number }) {
   const ref = useRef<HTMLDivElement>(null);
+  const place = useApp((s) => s.area.label?.split(/[,·]/)[0].trim() || "The town");
+
   return (
     <div ref={ref} className="absolute inset-0">
-      <div className="absolute top-0 bottom-0 w-px bg-white/70 shadow-[0_0_12px_rgba(255,255,255,0.6)]" style={{ left: `${split * 100}%` }} />
+      <div className="absolute top-0 bottom-0 w-[2px] bg-foreground" style={{ left: `${split * 100}%` }} />
       <div
-        className="pointer-events-auto absolute top-1/2 grid size-9 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize place-items-center rounded-full border border-white/60 bg-black/60 text-[10px] text-white backdrop-blur transition-transform hover:scale-110"
+        className="pointer-events-auto absolute top-1/2 grid size-9 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize place-items-center rounded-full border-2 border-foreground bg-sun text-[12px] font-bold text-foreground shadow-[2px_2px_0_0_var(--foreground)] transition-transform hover:scale-110"
         style={{ left: `${split * 100}%` }}
         onPointerDown={(e) => {
           e.stopPropagation();
@@ -410,8 +456,13 @@ function SplitDivider({ split }: { split: number }) {
       >
         ⇆
       </div>
-      <div className="absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium text-white/90 backdrop-blur">Without design</div>
-      <div className="absolute right-3 top-3 rounded-md bg-primary/80 px-2 py-1 text-[11px] font-medium text-primary-foreground">With Sponge design</div>
+      {/* tags hug the divider so the side panels never cover them */}
+      <div className="absolute top-3 -translate-x-full whitespace-nowrap rounded-md border-[1.5px] border-foreground bg-card px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-foreground shadow-[2px_2px_0_0_var(--foreground)]" style={{ left: `calc(${split * 100}% - 10px)` }}>
+        ← {place} today
+      </div>
+      <div className="absolute top-3 whitespace-nowrap rounded-md border-[1.5px] border-foreground bg-primary px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-white shadow-[2px_2px_0_0_var(--foreground)]" style={{ left: `calc(${split * 100}% + 10px)` }}>
+        With the sponge design →
+      </div>
     </div>
   );
 }
@@ -419,9 +470,13 @@ function SplitDivider({ split }: { split: number }) {
 function Legend({ view, shade }: { view: string; shade: string }) {
   if (view === "diff")
     return (
-      <div className="glass absolute bottom-3 right-3 rounded-xl px-3 py-2 text-[10px] text-muted-foreground">
-        <div className="mb-1 text-foreground">Change in water depth</div>
-        <div className="h-2 w-40 rounded-full" style={{ background: "linear-gradient(90deg,#fa7338,#8c9eb3,#2ed9b8)" }} />
+      <div className="card absolute bottom-3 right-3 rounded-xl px-3 py-2 text-[10px] text-muted-foreground">
+        <div className="label mb-1 !text-foreground">Change in water depth</div>
+        <div className="flex h-2.5 w-44 overflow-hidden rounded-sm border border-foreground">
+          <div className="flex-1 bg-primary" />
+          <div className="flex-1 bg-sand" />
+          <div className="flex-1 bg-water" />
+        </div>
         <div className="mt-0.5 flex justify-between">
           <span>deeper</span>
           <span>same</span>
@@ -431,17 +486,17 @@ function Legend({ view, shade }: { view: string; shade: string }) {
     );
   if (shade === "depth")
     return (
-      <div className="glass absolute bottom-3 right-3 rounded-xl px-3 py-2 text-[10px] text-muted-foreground">
-        <div className="mb-1 text-foreground">Water depth</div>
+      <div className="card absolute bottom-3 right-3 rounded-xl px-3 py-2 text-[10px] text-muted-foreground">
+        <div className="label mb-1 !text-foreground">Water depth</div>
         <div className="flex gap-0.5">
           {[
-            ["#b3e5fa", "<15 cm"],
-            ["#4fb3e8", "15–30"],
-            ["#2563eb", "30–60"],
-            ["#4c1d95", ">60 cm"],
+            ["#dbe6ff", "<15 cm"],
+            ["#8fb0ff", "15–30"],
+            ["#3d6cf5", "30–60"],
+            ["#1f3fb0", ">60 cm"],
           ].map(([c, l]) => (
             <div key={l} className="flex flex-col items-center gap-0.5">
-              <div className="h-2 w-10 rounded-sm" style={{ background: c }} />
+              <div className="h-2.5 w-10 rounded-sm border border-foreground" style={{ background: c }} />
               <span>{l}</span>
             </div>
           ))}

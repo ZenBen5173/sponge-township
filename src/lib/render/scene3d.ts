@@ -117,7 +117,7 @@ export class Scene3D {
     this.hemi.layers.enableAll();
     this.sun.shadow.camera.layers.enableAll();
     this.scene.add(this.sun, this.sun.target, this.hemi);
-    this.scene.fog = new THREE.Fog(0x9fb4c4, 2000, 6000);
+    this.scene.fog = new THREE.Fog(0xefebe2, 2000, 6000);
 
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(container);
@@ -801,7 +801,7 @@ export class Scene3D {
     wm.renderOrder = 2;
     wm.frustumCulled = false;
     grp.add(wm);
-    if (selected) grp.add(this.outline(f.w + 0.8, f.l + 0.8, rim + 0.3, 0x7dd3fc));
+    if (selected) grp.add(this.outline(f.w + 0.8, f.l + 0.8, rim + 0.3, 0xff5a36));
     grp.traverse((o) => o.layers.set(L_DESIGN));
     this.featureGroup.add(grp);
     this.squares.push({ id: f.id, group: grp, water: wm, depthAttr, floor, rim, f });
@@ -833,7 +833,7 @@ export class Scene3D {
     }
     inst.castShadow = true;
     grp.add(inst);
-    if (selected) grp.add(this.outline(f.w + 0.6, f.l + 0.6, rim + 0.4, 0x7dd3fc));
+    if (selected) grp.add(this.outline(f.w + 0.6, f.l + 0.6, rim + 0.4, 0xff5a36));
     grp.traverse((o) => o.layers.set(L_DESIGN));
     this.featureGroup.add(grp);
   }
@@ -859,7 +859,7 @@ export class Scene3D {
     const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2 }));
     m.receiveShadow = true;
     grp.add(m);
-    if (selected) grp.add(this.outline(f.w + 0.6, f.l + 0.6, this.groundAt(f.cx, f.cy) + 0.4, 0x7dd3fc));
+    if (selected) grp.add(this.outline(f.w + 0.6, f.l + 0.6, this.groundAt(f.cx, f.cy) + 0.4, 0xff5a36));
     grp.traverse((o) => o.layers.set(L_DESIGN));
     this.featureGroup.add(grp);
   }
@@ -894,7 +894,7 @@ export class Scene3D {
     const flowMat = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
-      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(target ? 0x5eead4 : 0xcbd5e1) } },
+      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(target ? 0x3d6cf5 : 0xffffff) } },
       vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);} ",
       fragmentShader:
         "uniform float uTime; uniform vec3 uColor; varying vec2 vUv; void main(){ float d = fract(vUv.x - uTime*0.6); float a = smoothstep(0.0,0.15,d)*smoothstep(0.55,0.3,d); gl_FragColor = vec4(uColor, a*0.9); }",
@@ -937,7 +937,7 @@ export class Scene3D {
     if (selected) {
       const line = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(pts.map(([x, y]) => new THREE.Vector3(x - S / 2, this.groundAt(x, y) + 0.6, y - S / 2))),
-        new THREE.LineBasicMaterial({ color: 0x7dd3fc, depthTest: false }),
+        new THREE.LineBasicMaterial({ color: 0xff5a36, depthTest: false }),
       );
       line.renderOrder = 6;
       grp.add(line);
@@ -960,13 +960,13 @@ export class Scene3D {
     grp.add(box);
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(1.2, 1.5, 40),
-      new THREE.MeshBasicMaterial({ color: target ? 0x5eead4 : 0xcbd5e1, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ color: target ? 0x3d6cf5 : 0xffffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }),
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.2;
     grp.add(ring);
     if (selected) {
-      const sel = new THREE.Mesh(new THREE.RingGeometry(2.1, 2.4, 40), new THREE.MeshBasicMaterial({ color: 0x7dd3fc, side: THREE.DoubleSide, depthTest: false }));
+      const sel = new THREE.Mesh(new THREE.RingGeometry(2.1, 2.4, 40), new THREE.MeshBasicMaterial({ color: 0xff5a36, side: THREE.DoubleSide, depthTest: false }));
       sel.rotation.x = -Math.PI / 2;
       sel.position.y = 0.4;
       sel.renderOrder = 6;

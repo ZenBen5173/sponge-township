@@ -31,78 +31,122 @@ async function composite(without: string, withD: string, base: Stats, design: St
   c.width = W;
   c.height = H;
   const g = c.getContext("2d")!;
-  const bg = g.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#0b141d");
-  bg.addColorStop(1, "#05080c");
-  g.fillStyle = bg;
+  // next/font gives each family a hashed name; read it back from the CSS variables
+  const css = getComputedStyle(document.body);
+  const fam = (v: string, fb: string) => `${css.getPropertyValue(v).trim() || fb}, ${fb}`;
+  const display = fam("--font-space-grotesk", "system-ui, sans-serif");
+  const mono = fam("--font-space-mono", "monospace");
+  const hand = fam("--font-caveat", "cursive");
+  const INK = "#161514";
+  const MUTED = "#6b665e";
+  g.fillStyle = "#f7f5ef";
   g.fillRect(0, 0, W, H);
+  const card = (x: number, y: number, w: number, h: number, r: number, fill: string, shadow = INK) => {
+    g.fillStyle = shadow;
+    g.beginPath();
+    g.roundRect(x + 7, y + 7, w, h, r);
+    g.fill();
+    g.fillStyle = fill;
+    g.strokeStyle = INK;
+    g.lineWidth = 3;
+    g.beginPath();
+    g.roundRect(x, y, w, h, r);
+    g.fill();
+    g.stroke();
+  };
+  const stamp = (text: string, x: number, y: number, color: string) => {
+    g.save();
+    g.translate(x, y);
+    g.rotate(-0.07);
+    g.font = `700 28px ${mono}`;
+    const w = g.measureText(text).width + 28;
+    g.strokeStyle = color;
+    g.fillStyle = color;
+    g.lineWidth = 3.5;
+    g.beginPath();
+    g.roundRect(0, -32, w, 44, 8);
+    g.stroke();
+    g.fillText(text, 14, 0);
+    g.restore();
+  };
   const [a, b] = await Promise.all([loadImg(without), loadImg(withD)]);
-  const pw = 920;
-  const ph = 620;
-  const top = 150;
-  const draw = (img: HTMLImageElement, x: number, label: string, color: string) => {
+  const pw = 900;
+  const ph = 600;
+  const top = 160;
+  const draw = (img: HTMLImageElement, x: number, label: string, chip: string, shadow: string) => {
     const s = Math.max(pw / img.width, ph / img.height);
     const sw = pw / s;
     const sh = ph / s;
+    card(x, top, pw, ph, 20, "#efebe2", shadow);
     g.save();
     g.beginPath();
-    g.roundRect(x, top, pw, ph, 18);
+    g.roundRect(x + 1.5, top + 1.5, pw - 3, ph - 3, 19);
     g.clip();
-    g.fillStyle = "#28394a";
-    g.fillRect(x, top, pw, ph);
     g.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, top, pw, ph);
     g.restore();
-    g.fillStyle = color;
-    g.font = "600 22px 'Instrument Sans', system-ui, sans-serif";
+    g.font = `700 20px ${mono}`;
+    const lw = g.measureText(label).width + 32;
+    g.fillStyle = INK;
     g.beginPath();
-    g.roundRect(x + 18, top + 18, g.measureText(label).width + 32, 40, 10);
+    g.roundRect(x + 22, top + 22, lw, 42, 10);
     g.fill();
-    g.fillStyle = color === "#5eead4" ? "#04201c" : "#ffffff";
+    g.fillStyle = chip;
+    g.beginPath();
+    g.roundRect(x + 18, top + 18, lw, 42, 10);
+    g.fill();
+    g.strokeStyle = INK;
+    g.lineWidth = 2.5;
+    g.stroke();
+    g.fillStyle = chip === "#ffffff" ? INK : "#ffffff";
     g.fillText(label, x + 34, top + 46);
   };
-  draw(a, 40, "Without design", "rgba(0,0,0,0.6)");
-  draw(b, 960, "With Sponge Township design", "#5eead4");
-  g.fillStyle = "#e8eef3";
-  g.font = "italic 56px 'Instrument Serif', Georgia, serif";
-  g.fillText(title, 40, 90);
-  g.fillStyle = "#8a9aab";
-  g.font = "22px 'Instrument Sans', system-ui, sans-serif";
-  g.fillText("Peak flood during the storm · Sponge Township flood simulator", 40, 126);
+  draw(a, 40, "WITHOUT DESIGN", "#ffffff", "#ff5a36");
+  draw(b, 970, "WITH THE SPONGE DESIGN", "#3d6cf5", "#3d6cf5");
+  g.fillStyle = "#ff5a36";
+  g.font = `700 18px ${mono}`;
+  g.fillText("PEAK FLOOD · SPONGE TOWNSHIP FLOOD SIMULATOR", 40, 62);
+  g.fillStyle = INK;
+  g.font = `700 60px ${display}`;
+  g.fillText(title, 40, 126, 1500);
+  g.save();
+  g.translate(W - 44, 118);
+  g.rotate(-0.05);
+  g.fillStyle = "#c8381a";
+  g.font = `700 40px ${hand}`;
+  g.textAlign = "right";
+  g.fillText("same storm, two towns ↓", 0, 0);
+  g.restore();
   const sq = design.features.find((f) => f.kind === "square");
   const nb = near.base;
   const nd = near.design;
-  const cards: [string, string, string][] = [
+  const cards: [string, string, number | null, string][] = [
     nb && nd
-      ? ["Deepest street within 150 m", `${nb.peakDepth.toFixed(2)} → ${nd.peakDepth.toFixed(2)} m`, fmtPct(pct(nb.peakDepth, nd.peakDepth))]
-      : ["Peak street depth", `${base.peakStreetDepth.toFixed(2)} → ${design.peakStreetDepth.toFixed(2)} m`, fmtPct(pct(base.peakStreetDepth, design.peakStreetDepth))],
-    ["Homes with water at the door", `${base.peakBuildingsWet} → ${design.peakBuildingsWet}`, fmtPct(pct(base.peakBuildingsWet, design.peakBuildingsWet))],
-    ["Street area > 15 cm deep", `${Math.round(base.peakFloodedRoadArea).toLocaleString()} → ${Math.round(design.peakFloodedRoadArea).toLocaleString()} m²`, fmtPct(pct(base.peakFloodedRoadArea, design.peakFloodedRoadArea))],
-    ["Water square stored (peak)", sq ? `${Math.round(sq.peakStored).toLocaleString()} m³` : "—", sq ? `${Math.round((sq.peakStored / Math.max(1, sq.capacity)) * 100)}% of capacity` : ""],
+      ? ["Deepest street within 150 m", `${nb.peakDepth.toFixed(2)} → ${nd.peakDepth.toFixed(2)} m`, pct(nb.peakDepth, nd.peakDepth), ""]
+      : ["Peak street depth", `${base.peakStreetDepth.toFixed(2)} → ${design.peakStreetDepth.toFixed(2)} m`, pct(base.peakStreetDepth, design.peakStreetDepth), ""],
+    ["Homes with water at the door", `${base.peakBuildingsWet} → ${design.peakBuildingsWet}`, pct(base.peakBuildingsWet, design.peakBuildingsWet), ""],
+    ["Street area > 15 cm deep", `${Math.round(base.peakFloodedRoadArea).toLocaleString()} → ${Math.round(design.peakFloodedRoadArea).toLocaleString()} m²`, pct(base.peakFloodedRoadArea, design.peakFloodedRoadArea), ""],
+    ["Water square stored (peak)", sq ? `${Math.round(sq.peakStored).toLocaleString()} m³` : "—", null, sq ? `${Math.round((sq.peakStored / Math.max(1, sq.capacity)) * 100)}% FULL` : ""],
   ];
-  cards.forEach(([label, value, delta], k) => {
-    const x = 40 + k * 465;
-    const y = 800;
-    g.fillStyle = "rgba(255,255,255,0.04)";
-    g.strokeStyle = "rgba(148,178,204,0.2)";
-    g.beginPath();
-    g.roundRect(x, y, 445, 200, 18);
-    g.fill();
-    g.stroke();
-    g.fillStyle = "#8a9aab";
-    g.font = "20px 'Instrument Sans', system-ui, sans-serif";
-    g.fillText(label.toUpperCase(), x + 24, y + 44);
-    g.fillStyle = "#e8eef3";
-    g.font = "600 40px 'JetBrains Mono', monospace";
-    g.fillText(value, x + 24, y + 110, 400);
-    g.fillStyle = "#5eead4";
-    g.font = "26px 'JetBrains Mono', monospace";
-    g.fillText(delta, x + 24, y + 160);
+  cards.forEach(([label, value, p, note], k) => {
+    const x = 40 + k * 462;
+    const y = 818;
+    card(x, y, 430, 200, 18, k === 3 ? "#dbe6ff" : "#ffffff");
+    g.fillStyle = MUTED;
+    g.font = `700 17px ${mono}`;
+    g.fillText(label.toUpperCase(), x + 24, y + 46, 390);
+    g.fillStyle = INK;
+    g.font = `700 38px ${mono}`;
+    g.fillText(value, x + 24, y + 108, 390);
+    const d = fmtPct(p);
+    if (d) stamp(d, x + 24, y + 166, p! < -0.5 ? "#2f8f46" : p! > 0.5 ? "#ff5a36" : INK);
+    else if (note) stamp(note, x + 24, y + 166, "#1f3fb0");
   });
   return dataUrlToU8(c.toDataURL("image/png"));
 }
 
 function fmtPct(p: number | null) {
   if (p === null || !Number.isFinite(p)) return "";
+  if (Math.abs(p) < 0.5) return "±0%";
   return `${p > 0 ? "+" : ""}${p.toFixed(0)}%`;
 }
 

@@ -13,32 +13,13 @@ import { exportPack } from "@/lib/export";
 import { SPRING } from "@/lib/motion";
 import { type Phase, type Tool, useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/ui/logo";
 
 const STEPS: { id: Phase; label: string; icon: React.ReactNode }[] = [
   { id: "pick", label: "Pick area", icon: <MapIcon className="size-3.5" /> },
   { id: "design", label: "Design & simulate", icon: <Layers3 className="size-3.5" /> },
   { id: "monitor", label: "Monitor", icon: <Gauge className="size-3.5" /> },
 ];
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="relative grid size-8 place-items-center overflow-hidden rounded-xl border border-primary/40 bg-primary/10">
-        <svg viewBox="0 0 32 32" className="size-5 text-primary">
-          <rect x="5" y="9" width="22" height="16" rx="2.5" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M5 19 q 5.5 -3 11 0 t 11 0 V25 H5z" fill="currentColor" opacity="0.55" />
-          <circle cx="11" cy="14" r="1.2" fill="currentColor" />
-          <circle cx="16" cy="13" r="1.2" fill="currentColor" />
-          <circle cx="21" cy="14" r="1.2" fill="currentColor" />
-        </svg>
-      </div>
-      <div className="leading-none">
-        <div className="font-display text-lg italic text-foreground">Sponge Township</div>
-        <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">flood simulator · SDP 2026</div>
-      </div>
-    </div>
-  );
-}
 
 // Handy for debugging and for scripted end-to-end checks.
 if (typeof window !== "undefined") (window as unknown as { __sponge: unknown }).__sponge = { useApp, getEngine };
@@ -49,7 +30,7 @@ function PanelToggle({ open, side, onClick }: { open: boolean; side: "left" | "r
     <button
       onClick={onClick}
       title={open ? "Hide panel" : "Show panel"}
-      className="glass group mt-2 grid h-10 w-5 place-items-center rounded-lg text-muted-foreground transition-colors hover:text-primary"
+      className="lift group mt-2 grid h-10 w-5 place-items-center rounded-md border border-border bg-card text-muted-foreground hover:text-foreground"
     >
       <svg viewBox="0 0 8 12" className={cn("size-2.5 transition-transform group-hover:scale-125", pointsLeft ? "" : "rotate-180")}>
         <path d="M6 1 1 6l5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -86,9 +67,9 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex h-dvh flex-col bg-background">
-        <header className="relative z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/80 px-3 backdrop-blur sm:px-4">
+        <header className="relative z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-3 sm:px-4">
           <Logo />
-          <nav className="flex rounded-xl border border-border bg-black/30 p-1">
+          <nav className="flex h-full items-stretch gap-1 sm:gap-3">
             {STEPS.map((s, k) => {
               const active = phase === s.id;
               const disabled = s.id === "design" && !canDesign;
@@ -98,17 +79,17 @@ export default function App() {
                   disabled={disabled}
                   onClick={() => set({ phase: s.id })}
                   className={cn(
-                    "relative flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-35 sm:px-3",
-                    active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                    "group relative flex items-center gap-1.5 px-1.5 text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-35",
+                    active ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                   title={disabled ? "Pick an area first" : s.label}
                 >
-                  {active && <motion.span layoutId="step-pill" transition={SPRING.default} className="absolute inset-0 rounded-lg bg-primary" />}
-                  <span className="relative">{s.icon}</span>
-                  <span className="relative hidden md:inline">
-                    <span className="mr-1 opacity-60">{k + 1}</span>
+                  <span className={cn("transition-colors", active ? "text-primary" : "group-hover:text-foreground")}>{s.icon}</span>
+                  <span className="hidden md:inline">
+                    <span className="mr-1.5 font-mono text-[10px] text-muted-foreground">0{k + 1}</span>
                     {s.label}
                   </span>
+                  {active && <motion.span layoutId="step-underline" transition={SPRING.default} className="absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-primary" />}
                 </button>
               );
             })}
@@ -123,7 +104,7 @@ export default function App() {
                 setExporting(false);
               }
             }}
-            className="group flex items-center gap-1.5 rounded-xl border border-border bg-black/30 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-40"
+            className="lift group flex items-center gap-1.5 rounded-lg border-[1.5px] border-foreground bg-card px-3 py-1.5 text-xs font-medium text-foreground disabled:pointer-events-none disabled:opacity-40"
             title="Before/after images and a numbers summary for the pitch deck"
           >
             {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5 transition-transform group-hover:translate-y-0.5" />}
@@ -179,7 +160,7 @@ export default function App() {
                 <div className="pointer-events-auto hidden sm:block">
                   <Timeline />
                 </div>
-                <div className="pointer-events-auto glass rounded-xl px-3 py-2 text-[11px] text-muted-foreground sm:hidden">
+                <div className="card pointer-events-auto rounded-xl px-3 py-2 text-[11px] text-muted-foreground sm:hidden">
                   The designer works best on a laptop.{" "}
                   <button onClick={() => set({ phase: "monitor" })} className="text-primary underline">
                     Open the resident dashboard
@@ -189,7 +170,7 @@ export default function App() {
             </div>
           )}
           {phase === "monitor" && (
-            <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top,#10202e,transparent_60%)]">
+            <div className="absolute inset-0 z-10 bg-background">
               <Monitor embedded />
             </div>
           )}
@@ -201,7 +182,7 @@ export default function App() {
               initial={{ opacity: 0, y: 16, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8 }}
-              className="glass fixed bottom-24 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 rounded-xl px-4 py-2.5 text-xs text-foreground"
+              className="fixed bottom-24 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 rounded-xl border-[1.5px] border-foreground bg-foreground px-4 py-2.5 text-xs text-white shadow-[3px_3px_0_0_var(--primary)]"
             >
               {toast}
             </motion.div>

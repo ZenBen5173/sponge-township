@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function MonitorPage() {
   return (
-    <div className="h-dvh overflow-y-auto bg-[radial-gradient(ellipse_at_top,#10202e,#070b10_60%)]">
+    <div className="h-dvh overflow-y-auto bg-background">
       <MonitorClient />
     </div>
   );

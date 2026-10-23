@@ -33,7 +33,7 @@ export function Timeline() {
       .join(" ");
 
   return (
-    <div className="glass flex flex-col gap-2 rounded-2xl p-2.5 md:flex-row md:items-center">
+    <div className="card flex flex-col gap-2 rounded-[14px] p-2.5 md:flex-row md:items-center">
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <Segmented<ViewMode>
           size="sm"
@@ -59,14 +59,14 @@ export function Timeline() {
         />
         <button
           onClick={() => getEngine().scene3d?.resetCamera(true)}
-          className="grid size-7 place-items-center rounded-lg border border-border text-muted-foreground hover:text-foreground"
+          className="lift grid size-7 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground"
           title="Top view"
         >
           <Eye className="size-3.5" />
         </button>
         <button
           onClick={() => getEngine().scene3d?.resetCamera(false)}
-          className="grid size-7 place-items-center rounded-lg border border-border text-muted-foreground hover:text-foreground"
+          className="lift grid size-7 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground"
           title="Oblique view"
         >
           <Mountain className="size-3.5" />
@@ -77,7 +77,7 @@ export function Timeline() {
               setPeak(!peak);
               getEngine().showPeaks(!peak);
             }}
-            className={cn("rounded-lg border px-2 py-1 text-[10px] transition-colors", peak ? "border-warn/60 bg-warn/15 text-warn" : "border-border text-muted-foreground hover:text-foreground")}
+            className={cn("lift rounded-lg border px-2 py-1 text-[10px] font-medium", peak ? "inked bg-sun text-foreground" : "border-border bg-card text-muted-foreground hover:text-foreground")}
           >
             {peak ? "Showing worst moment" : "Show worst moment"}
           </button>
@@ -87,41 +87,42 @@ export function Timeline() {
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-[70px] w-full">
           <defs>
             <linearGradient id="rainfill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0" stopColor="#38bdf8" stopOpacity="0.55" />
-              <stop offset="1" stopColor="#38bdf8" stopOpacity="0.08" />
+              <stop offset="0" stopColor="#3d6cf5" stopOpacity="0.45" />
+              <stop offset="1" stopColor="#3d6cf5" stopOpacity="0.1" />
             </linearGradient>
           </defs>
           {[0.25, 0.5, 0.75].map((f) => (
-            <line key={f} x1={f * W} x2={f * W} y1={0} y2={H} stroke="rgba(148,178,204,0.08)" />
+            <line key={f} x1={f * W} x2={f * W} y1={0} y2={H} stroke="rgba(22,21,20,0.07)" strokeDasharray="2 4" vectorEffect="non-scaling-stroke" />
           ))}
           {blocks.map((b, k) => (
             <rect key={k} x={X(b.t0 * 60) + 1} y={0} width={Math.max(1, X((b.t1 - b.t0) * 60) - 2)} height={(b.mmh / maxR) * 30} fill="url(#rainfill)" rx={2} />
           ))}
-          <polyline points={line(h.baseStreet, maxD)} fill="none" stroke="#fb923c" strokeWidth={2} vectorEffect="non-scaling-stroke" />
-          {hasDesign && <polyline points={line(h.designStreet, maxD)} fill="none" stroke="#5eead4" strokeWidth={2} vectorEffect="non-scaling-stroke" />}
-          {hasDesign && <polyline points={line(h.level, Math.max(1, ...features.map((f) => ("depth" in f ? f.depth : 0))))} fill="none" stroke="#60a5fa" strokeWidth={1.5} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />}
-          <line x1={X(run.t)} x2={X(run.t)} y1={0} y2={H} stroke="white" strokeOpacity={0.8} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-          <line x1={X(storm.durationMin * 60)} x2={X(storm.durationMin * 60)} y1={0} y2={H} stroke="#38bdf8" strokeOpacity={0.35} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+          <polyline points={line(h.baseStreet, maxD)} fill="none" stroke="#ff5a36" strokeWidth={2.25} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+          {hasDesign && <polyline points={line(h.designStreet, maxD)} fill="none" stroke="#2f8f46" strokeWidth={2.25} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
+          {hasDesign && <polyline points={line(h.level, Math.max(1, ...features.map((f) => ("depth" in f ? f.depth : 0))))} fill="none" stroke="#1f3fb0" strokeWidth={1.5} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />}
+          <line x1={X(run.t)} x2={X(run.t)} y1={0} y2={H} stroke="#161514" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+          <line x1={X(storm.durationMin * 60)} x2={X(storm.durationMin * 60)} y1={0} y2={H} stroke="#3d6cf5" strokeOpacity={0.5} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
         </svg>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between px-0.5 text-[9px] text-muted-foreground">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between px-0.5 font-mono text-[9px] text-muted-foreground">
           <span className="num">00:00</span>
           <span className="flex gap-3">
             <span className="flex items-center gap-1">
-              <span className="h-0.5 w-3 bg-sky-400/60" />
+              <span className="h-1.5 w-3 rounded-sm bg-water/40" />
               rain
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-0.5 w-3 bg-orange-400" />
+              <span className="h-0.5 w-3 bg-primary" />
               deepest street, without
             </span>
             {hasDesign && (
               <>
                 <span className="flex items-center gap-1">
-                  <span className="h-0.5 w-3 bg-teal-300" />
+                  <span className="h-0.5 w-3 bg-ok" />
                   with design
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="h-0.5 w-3 border-t border-dashed border-blue-400" />
+                  <span className="h-0.5 w-3 border-t border-dashed border-water-deep" />
+
                   square level
                 </span>
               </>

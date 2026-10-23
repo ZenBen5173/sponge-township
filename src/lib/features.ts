@@ -3,11 +3,11 @@ import type { Feature, RectFeature } from "./sim/types";
 import { newId } from "./store";
 
 export const FEATURE_INFO = {
-  square: { label: "Water square", short: "Square", color: "#38bdf8", blurb: "Sunken court that stores floodwater and drains slowly through an outlet pipe." },
-  garden: { label: "Rain garden", short: "Garden", color: "#4ade80", blurb: "Planted dip: holds water on top, soaks it into gravel and soil below." },
-  permeable: { label: "Permeable walkway", short: "Walkway", color: "#e2c08d", blurb: "Paving with open joints: rain soaks into a stone sub-base instead of running off." },
-  drain: { label: "Drain / gutter", short: "Drain", color: "#5eead4", blurb: "Grated channel that catches street water and sends it to the water square (or the drains)." },
-  inlet: { label: "Inlet", short: "Inlet", color: "#a5f3fc", blurb: "Kerb inlet that catches street water at one point." },
+  square: { label: "Water square", short: "Square", color: "#3d6cf5", blurb: "Sunken court that stores floodwater and drains slowly through an outlet pipe." },
+  garden: { label: "Rain garden", short: "Garden", color: "#2f8f46", blurb: "Planted dip: holds water on top, soaks it into gravel and soil below." },
+  permeable: { label: "Permeable walkway", short: "Walkway", color: "#c99b63", blurb: "Paving with open joints: rain soaks into a stone sub-base instead of running off." },
+  drain: { label: "Drain / gutter", short: "Drain", color: "#161514", blurb: "Grated channel that catches street water and sends it to the water square (or the drains)." },
+  inlet: { label: "Inlet", short: "Inlet", color: "#ff5a36", blurb: "Kerb inlet that catches street water at one point." },
 } as const;
 
 export function countOf(features: Feature[], kind: Feature["kind"]) {
