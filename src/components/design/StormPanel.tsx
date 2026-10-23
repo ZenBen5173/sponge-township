@@ -303,7 +303,9 @@ function BalanceCard({ s }: { s: Stats }) {
         <span className="flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
           <Scale className="size-3" /> Water balance
         </span>
-        <span className={cn("num text-[10px]", Math.abs(b.error) < 1e-6 ? "text-ok" : "text-warn")}>error {(Math.abs(b.error) * 100).toExponential(1)}%</span>
+        <span className={cn("num text-[10px]", Math.abs(b.error) < 1e-4 ? "text-ok" : "text-warn")} title="(rain in − everything accounted for) ÷ rain in">
+          {Math.abs(b.error) < 1e-12 ? "closes exactly" : `error ${(Math.abs(b.error) * 100).toPrecision(1)}%`}
+        </span>
       </div>
       <div className="mt-1.5 flex h-2 overflow-hidden rounded-full">
         {items.map(([l, v, c]) => (

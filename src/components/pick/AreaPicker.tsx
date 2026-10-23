@@ -164,10 +164,7 @@ export function AreaPicker() {
 
   // search (Photon, OpenStreetMap-based, biased to Klang)
   useEffect(() => {
-    if (q.trim().length < 3) {
-      setHits([]);
-      return;
-    }
+    if (q.trim().length < 3) return;
     const ctl = new AbortController();
     const t = setTimeout(async () => {
       setSearching(true);
@@ -231,7 +228,10 @@ export function AreaPicker() {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+                if (e.target.value.trim().length < 3) setHits([]);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") setHl((h) => Math.min(hits.length - 1, h + 1));
                 else if (e.key === "ArrowUp") setHl((h) => Math.max(0, h - 1));

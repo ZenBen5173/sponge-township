@@ -36,7 +36,7 @@ export interface OsmData {
   roads: OsmRoad[];
   areas: OsmArea[];
   waterways: OsmWaterway[];
-  source: "live" | "baked" | "none";
+  source: "live" | "baked" | "tiles" | "none";
 }
 
 /** Carriageway widths including kerb and roadside drain (m), typical Malaysian township streets. */
@@ -186,30 +186,45 @@ export function parseOverpass(json: { elements: El[] }, source: OsmData["source"
   return out;
 }
 
-/** Load OpenStreetMap features for a bbox: the baked default area first, then the live proxy. */
+/**
+ * Load OpenStreetMap features for a bbox: the baked default area first; otherwise ask the Overpass
+ * proxy and the OpenFreeMap vector tiles at the same time, and take Overpass (richer tags) if it
+ * answers within 12 s, else the tiles.
+ */
 export async function loadOsm(bbox: BBox): Promise<{ data: OsmData; warning?: string }> {
-  const tryBaked = async () => {
-    const res = await fetch("/baked/casira-osm.json");
-    if (!res.ok) throw new Error("no baked data");
-    return parseOverpass(await res.json(), "baked");
-  };
   if (bboxContains(BAKED_OSM_BBOX, bbox)) {
     try {
-      return { data: await tryBaked() };
+      const res = await fetch("/baked/casira-osm.json");
+      if (res.ok) return { data: parseOverpass(await res.json(), "baked") };
     } catch {
       /* fall through to live */
     }
   }
-  try {
-    const q = [bbox.s, bbox.w, bbox.n, bbox.e].map((v) => v.toFixed(6)).join(",");
+  const q = [bbox.s, bbox.w, bbox.n, bbox.e].map((v) => v.toFixed(6)).join(",");
+  const overpass = (async () => {
     const res = await fetch(`/api/osm?bbox=${q}`, { signal: AbortSignal.timeout(110_000) });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? res.statusText);
-    return { data: parseOverpass(json, "live") };
-  } catch (err) {
-    return {
-      data: { buildings: [], roads: [], areas: [], waterways: [], source: "none" },
-      warning: `Buildings and roads could not be loaded (${(err as Error).message}). Terrain and imagery only — try again in a minute.`,
-    };
+    return parseOverpass(json, "live");
+  })();
+  const tiles = import("./vectortiles").then((m) => m.loadOsmFromTiles(bbox, AbortSignal.timeout(30_000)));
+  overpass.catch(() => {});
+  tiles.catch(() => {});
+  const timeout = new Promise<null>((r) => setTimeout(() => r(null), 12_000));
+  const first = await Promise.race([overpass.catch(() => null), timeout]);
+  if (first) return { data: first };
+  try {
+    const t = await tiles;
+    t.source = "tiles";
+    return { data: t };
+  } catch {
+    try {
+      return { data: await overpass };
+    } catch (err) {
+      return {
+        data: { buildings: [], roads: [], areas: [], waterways: [], source: "none" },
+        warning: `Buildings and roads could not be loaded (${(err as Error).message}). Terrain and imagery only — try again in a minute.`,
+      };
+    }
   }
 }

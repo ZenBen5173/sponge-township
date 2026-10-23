@@ -185,6 +185,7 @@ Alerts are in-app only (no SMS / WhatsApp / Telegram), as the brief asked.
 | Elevation | [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (terrarium, from SRTM and others) | Open data; attribution to the sources (see AWS registry) |
 | Satellite imagery | Esri World Imagery (Esri, Maxar, Earthstar Geographics) | Esri terms of use; attribution shown in the app. Fine for a prototype; production use needs an Esri or open imagery licence |
 | Buildings, roads, land use | © OpenStreetMap contributors, via Overpass API | ODbL 1.0 |
+| Buildings/roads fallback | [OpenFreeMap](https://openfreemap.org) vector tiles (OpenMapTiles schema, OSM data), used when Overpass is busy | OSM data ODbL; © OpenMapTiles |
 | Place search | [Photon](https://photon.komoot.io) (komoot), OSM data | ODbL data; free public API |
 | Weather and warnings | MET Malaysia via [data.gov.my](https://developer.data.gov.my/realtime-api/weather) | Open data (data.gov.my terms, CC BY 4.0) |
 | Numerical method | [Deluge](https://github.com/rkottomt/deluge-flood-sim) (scheme layout and safeguards; code rewritten here) | MIT |

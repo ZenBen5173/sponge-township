@@ -95,7 +95,9 @@ function useReplay(active: boolean, clog: boolean): [Feed | null, () => void] {
   const [feed, setFeed] = useState<Feed | null>(null);
   const [nonce, setNonce] = useState(0);
   const clogRef = useRef(clog);
-  clogRef.current = clog;
+  useEffect(() => {
+    clogRef.current = clog;
+  }, [clog]);
   useEffect(() => {
     if (!active) return;
     const s = new SensorSim();
@@ -496,11 +498,14 @@ function QRCard() {
   const [url, setUrl] = useState("");
   useEffect(() => {
     const u = `${window.location.origin}/monitor`;
-    setUrl(u);
-    QRCode.toDataURL(u, { margin: 1, width: 240, color: { dark: "#e8eef3", light: "#00000000" } }).then(setSrc);
+    QRCode.toDataURL(u, { margin: 1, width: 240, color: { dark: "#e8eef3", light: "#00000000" } }).then((d) => {
+      setSrc(d);
+      setUrl(u);
+    });
   }, []);
   return (
     <Panel className="flex items-center gap-4 p-4">
+      {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL QR code, nothing to optimise */}
       {src ? <img src={src} alt="QR code to the phone dashboard" className="size-24 rounded-lg bg-white/5 p-1" /> : <div className="size-24 rounded-lg bg-white/5" />}
       <div className="min-w-0">
         <div className="flex items-center gap-1.5 text-sm font-medium">

@@ -3,7 +3,7 @@ import { FloodModel } from "../src/lib/sim/model";
 import { KAPAR_2023 } from "../src/lib/sim/storm";
 import { DEFAULT_PARAMS, type GridData } from "../src/lib/sim/types";
 
-let raw = readFileSync("tests/fixtures/casira-grid.json", "utf8");
+const raw = readFileSync("tests/fixtures/casira-grid.json", "utf8");
 let j = JSON.parse(raw);
 if (typeof j === "string") j = JSON.parse(j);
 const grid: GridData = { nx: j.nx, ny: j.ny, dx: j.dx, z0: j.z0, nBuildings: j.nBuildings, z: Float32Array.from(j.z), land: Uint8Array.from(j.land), buildingId: Int32Array.from(j.buildingId), h0: Float32Array.from(j.h0) };

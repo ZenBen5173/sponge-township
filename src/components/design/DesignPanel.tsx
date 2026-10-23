@@ -97,7 +97,7 @@ export function DesignPanel() {
     const walk = (pts: [number, number][], k: number, t: number, dir: 1 | -1, len: number): [number, number][] => {
       const out: [number, number][] = [];
       let left = len;
-      let seg = k;
+      const seg = k;
       let pos: [number, number] = [pts[k][0] + t * (pts[k + 1][0] - pts[k][0]), pts[k][1] + t * (pts[k + 1][1] - pts[k][1])];
       out.push(pos);
       let target = dir > 0 ? seg + 1 : seg;
