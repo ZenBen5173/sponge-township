@@ -38,7 +38,9 @@ export async function GET(req: Request) {
       fetch(`${API}/warning/?limit=20&sort=-warning_issue__issued`, { signal: AbortSignal.timeout(12000), next: { revalidate: 900 } }),
     ]);
     if (!fRes.ok) throw new Error(`forecast ${fRes.status}`);
-    const raw = ((await fRes.json()) as RawDay[]).filter((d) => d.location.location_name.toLowerCase() === loc.toLowerCase());
+    const rows = ((await fRes.json()) as RawDay[]).filter((d) => d.location.location_name.toLowerCase() === loc.toLowerCase());
+    // the API can return a date more than once; keep one row per date
+    const raw = [...new Map(rows.map((d) => [d.date, d])).values()];
     const now = myt();
     const today = now.toISOString().slice(0, 10);
     const days: DayForecast[] = raw
@@ -61,6 +63,7 @@ export async function GET(req: Request) {
       warnings = ((await wRes.json()) as RawWarning[])
         .filter((w) => !w.valid_to || w.valid_to >= nowIso)
         .filter((w) => !/no advisory|tiada nasihat/i.test(w.warning_issue.title_en ?? ""))
+        .filter((w, k, all) => all.findIndex((x) => x.warning_issue.title_en === w.warning_issue.title_en) === k)
         .map((w) => {
           const text = w.text_en ?? "";
           const land = /thunderstorm|heavy rain|continuous rain|ribut petir|hujan lebat/i.test(`${w.warning_issue.title_en} ${w.heading_en}`);

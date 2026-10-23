@@ -18,6 +18,8 @@ export interface SceneBuilding {
   cells: number;
   /** true = read from the satellite image (not in OpenStreetMap) */
   detected?: boolean;
+  /** ring edge (0 or 1) whose direction the roof ridge follows */
+  ridgeEdge?: number;
 }
 
 export interface Candidate {
@@ -240,7 +242,7 @@ export async function buildScene(area: Area, onProgress: Progress = () => {}): P
       buildingId[c] = id;
       zs += zRaw[c];
     }
-    buildings.push({ id, ring: h.ring, height: h.height, base: zs / h.cells.length, kind: "house", roof: h.roof, cells: h.cells.length, detected: true });
+    buildings.push({ id, ring: h.ring, height: h.height, base: zs / h.cells.length, kind: "house", roof: h.roof, cells: h.cells.length, detected: true, ridgeEdge: 0 });
   }
   if (houses.length) warnings.push(`${nOsm} buildings from OpenStreetMap + ${houses.length} houses read from the satellite image.`);
 

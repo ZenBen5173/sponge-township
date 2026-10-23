@@ -228,6 +228,7 @@ struct Sq { V: f32, peakV: f32, floor: f32, area: f32, outletA: f32, Vmax: f32, 
 @group(1) @binding(5) var<storage, read_write> featCap: array<f32>;
 @group(1) @binding(6) var<storage, read_write> net: array<atomic<u32>>;
 @group(1) @binding(7) var<storage, read_write> sqAcc: array<vec4<f32>>; // inflow, outflow, expected (m³)
+var<private> capAdd: array<f32, 8>;
 @compute @workgroup_size(1)
 fn main() {
   let A = K.A;
@@ -243,15 +244,18 @@ fn main() {
     let e = caps[k];
     // a full court cannot take more: the gutter backs up and the water stays in the street
     let room = max(sq[e.z].Vmax - sq[e.z].V, 0.0) / A;
-    let d = min(min(h[e.x], bitcast<f32>(e.y) * P.dt / A), room);
+    let d = min(min(h[e.x], bitcast<f32>(e.y) * P.dt / A), max(room - capAdd[min(e.z, 7u)] / A, 0.0));
     h[e.x] -= d;
-    sq[e.z].V += d * A;
+    // gather this step's additions and apply them once: many tiny Float32 adds to a large
+    // volume would each round away part of the water
+    capAdd[min(e.z, 7u)] += d * A;
     sqAcc[e.z].x += d * A;
     featCap[e.w] += d * A;
   }
   for (var s = 0u; s < K.nSq; s++) {
     var Q = sq[s];
-    Q.V += P.dR * f32(Q.cellN) * A;
+    var dV = P.dR * f32(Q.cellN) * A + capAdd[min(s, 7u)];
+    let V0 = Q.V;
     var inflow = 0.0;
     let eq = (A * Q.area) / (A + Q.area);
     for (var k = 0u; k < Q.rimN; k++) {
@@ -259,7 +263,7 @@ fn main() {
       let crest = cellA[c].x;
       let hc = h[c];
       let eta = crest + hc;
-      let ws = Q.floor + Q.V / Q.area;
+      let ws = Q.floor + (V0 + dV) / Q.area;
       if (eta > ws && hc > K.hmin) {
         let Hu = hc;
         let Hd = max(ws - crest, 0.0);
@@ -267,24 +271,25 @@ fn main() {
         if (Hd > 0.0) { Qw *= pow(1.0 - pow(Hd / Hu, 1.5), 0.385); }
         let dv = min(min(Qw * P.dt, hc * A), (eta - ws) * eq);
         h[c] = hc - dv / A;
-        Q.V += dv;
+        dV += dv;
         inflow += dv;
       } else if (ws > eta && ws > crest) {
         let Hu = ws - crest;
         let Hd = hc;
         var Qw = K.weirC * K.dx * Hu * sqrt(Hu);
         if (Hd > 0.0) { Qw *= pow(1.0 - pow(min(Hd / Hu, 1.0), 1.5), 0.385); }
-        let dv = min(min(Qw * P.dt, Q.V), (ws - eta) * eq);
-        Q.V -= dv;
+        let dv = min(min(Qw * P.dt, V0 + dV), (ws - eta) * eq);
+        dV -= dv;
         h[c] = hc + dv / A;
         inflow -= dv;
       }
     }
-    let head = Q.V / Q.area;
+    let Vn = V0 + dV;
+    let head = Vn / Q.area;
     let qClear = K.cd * Q.outletA * sqrt(2.0 * G * max(head, 0.0));
-    let out = min(min(Q.V, qClear * P.clear * P.dt), netLeft);
-    let expv = min(min(Q.V, qClear * P.dt), netLeft);
-    Q.V -= out;
+    let out = min(min(Vn, qClear * P.clear * P.dt), netLeft);
+    let expv = min(min(Vn, qClear * P.dt), netLeft);
+    Q.V = V0 + (dV - out);
     netLeft -= out;
     Q.peakV = max(Q.peakV, Q.V);
     if (head > 0.05) { Q.everFilled = 1.0; }

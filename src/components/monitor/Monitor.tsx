@@ -35,6 +35,7 @@ interface Feed {
   alerts: CourtAlert[];
   closed: boolean;
   clock: "sim" | "live";
+  drainDown?: boolean;
 }
 
 const ICONS: Record<string, ReactNode> = {
@@ -296,7 +297,8 @@ export function Monitor({ embedded = false }: { embedded?: boolean }) {
               <div className="mt-3 rounded-xl border border-border bg-black/25 px-3 py-2 text-[11px] text-muted-foreground">
                 {feed.clock === "sim" ? (
                   <>
-                    <span className="num text-foreground">{fmtClock(feed.t)}</span> into the storm ·{" "}
+                    <span className="num text-foreground">{fmtClock(feed.t)}</span> after the storm began ·{" "}
+                    {feed.drainDown && <span className="text-water">fast-forwarding the drain-down (outlet only) · </span>}
                     {feed.emptyAt != null
                       ? `emptied ${fmtDuration(feed.emptyAt - KAPAR_2023.durationMin * 60)} after the rain`
                       : feed.level > 0.01
@@ -432,7 +434,7 @@ function WeatherCard({ w, err }: { w: WeatherPayload | null; err: boolean }) {
           <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-7 lg:grid-cols-4 xl:grid-cols-7">
             {w.days.map((d, k) => (
               <motion.div
-                key={d.date}
+                key={`${d.date}-${k}`}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: k * 0.04 }}
@@ -450,8 +452,8 @@ function WeatherCard({ w, err }: { w: WeatherPayload | null; err: boolean }) {
           </div>
           {w.warnings.length > 0 && (
             <div className="mt-2 space-y-1">
-              {w.warnings.slice(0, 2).map((x) => (
-                <div key={x.issued + x.title} className={cn("rounded-lg border px-2 py-1 text-[10px]", x.relevant ? "border-warn/40 text-warn" : "border-border text-muted-foreground")}>
+              {w.warnings.slice(0, 2).map((x, k) => (
+                <div key={`${x.issued}-${x.title}-${k}`} className={cn("rounded-lg border px-2 py-1 text-[10px]", x.relevant ? "border-warn/40 text-warn" : "border-border text-muted-foreground")}>
                   {x.title}
                   {x.relevant ? " · affects Klang" : ""}
                 </div>

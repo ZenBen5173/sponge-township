@@ -4,7 +4,7 @@ import { fmtDuration } from "@/components/ui/primitives";
 import { getEngine } from "./engine";
 import { fmtLatLon } from "./geo";
 import type { Stats } from "./sim/types";
-import { useApp } from "./store";
+import { type NearStats, useApp } from "./store";
 
 function dataUrlToU8(url: string): Uint8Array {
   const b64 = url.split(",")[1] ?? "";
@@ -24,7 +24,7 @@ async function loadImg(src: string): Promise<HTMLImageElement> {
 const pct = (a?: number, b?: number) => (a && b !== undefined && a > 0 ? ((b - a) / a) * 100 : null);
 
 /** One 1920×1080 slide-ready image: before | after, with the headline numbers. */
-async function composite(without: string, withD: string, base: Stats, design: Stats, title: string): Promise<Uint8Array> {
+async function composite(without: string, withD: string, base: Stats, design: Stats, title: string, near: { base?: NearStats; design?: NearStats }): Promise<Uint8Array> {
   const W = 1920;
   const H = 1080;
   const c = document.createElement("canvas");
@@ -69,9 +69,13 @@ async function composite(without: string, withD: string, base: Stats, design: St
   g.font = "22px 'Instrument Sans', system-ui, sans-serif";
   g.fillText("Peak flood during the storm · Sponge Township flood simulator", 40, 126);
   const sq = design.features.find((f) => f.kind === "square");
+  const nb = near.base;
+  const nd = near.design;
   const cards: [string, string, string][] = [
-    ["Peak street depth", `${base.peakStreetDepth.toFixed(2)} → ${design.peakStreetDepth.toFixed(2)} m`, fmtPct(pct(base.peakStreetDepth, design.peakStreetDepth))],
-    ["Buildings with water at the door", `${base.peakBuildingsWet} → ${design.peakBuildingsWet}`, fmtPct(pct(base.peakBuildingsWet, design.peakBuildingsWet))],
+    nb && nd
+      ? ["Deepest street within 150 m", `${nb.peakDepth.toFixed(2)} → ${nd.peakDepth.toFixed(2)} m`, fmtPct(pct(nb.peakDepth, nd.peakDepth))]
+      : ["Peak street depth", `${base.peakStreetDepth.toFixed(2)} → ${design.peakStreetDepth.toFixed(2)} m`, fmtPct(pct(base.peakStreetDepth, design.peakStreetDepth))],
+    ["Homes with water at the door", `${base.peakBuildingsWet} → ${design.peakBuildingsWet}`, fmtPct(pct(base.peakBuildingsWet, design.peakBuildingsWet))],
     ["Street area > 15 cm deep", `${Math.round(base.peakFloodedRoadArea).toLocaleString()} → ${Math.round(design.peakFloodedRoadArea).toLocaleString()} m²`, fmtPct(pct(base.peakFloodedRoadArea, design.peakFloodedRoadArea))],
     ["Water square stored (peak)", sq ? `${Math.round(sq.peakStored).toLocaleString()} m³` : "—", sq ? `${Math.round((sq.peakStored / Math.max(1, sq.capacity)) * 100)}% of capacity` : ""],
   ];
@@ -119,7 +123,14 @@ export function summaryMarkdown(): string {
     row("Peak street water depth", base.peakStreetDepth, design.peakStreetDepth, 2, "m");
     row("Buildings with water at the door", base.peakBuildingsWet, design.peakBuildingsWet, 0, "");
     row("Street area under > 15 cm", base.peakFloodedRoadArea, design.peakFloodedRoadArea, 0, "m²");
-    lines.push("");
+    const nb = s.near.base;
+    const nd = s.near.design;
+    if (nb && nd) {
+      row("Within 150 m of the design: deepest street", nb.peakDepth, nd.peakDepth, 2, "m");
+      row(`Within 150 m: homes with water at the door (of ${nb.buildings})`, nb.buildingsWet, nd.buildingsWet, 0, "");
+      row("Within 150 m: street area under > 15 cm", nb.floodedRoadArea, nd.floodedRoadArea, 0, "m²");
+    }
+    lines.push("", "_All values are the worst moment of each run (peak over the storm and the drain-down)._", "");
   } else if (base ?? design) {
     const x = (base ?? design)!;
     lines.push(`Peak street depth ${x.peakStreetDepth.toFixed(2)} m · ${x.peakBuildingsWet} buildings with water at the door · ${Math.round(x.peakFloodedRoadArea)} m² of street under 15 cm+`, "");
@@ -181,7 +192,8 @@ export async function exportPack() {
   if (snap.split) files["3-split-view.png"] = dataUrlToU8(snap.split);
   const base = s.finals.base ?? s.stats.base;
   const design = s.finals.design ?? s.stats.design;
-  if (snap.without && snap.with && base && design) files["0-comparison-slide.png"] = await composite(snap.without, snap.with, base, design, s.area.label?.split(",")[0] ?? "Sponge Township");
+  if (snap.without && snap.with && base && design)
+    files["0-comparison-slide.png"] = await composite(snap.without, snap.with, base, design, s.area.label?.split(",")[0] ?? "Sponge Township", s.near);
   files["summary.md"] = strToU8(summaryMarkdown());
   files["timeseries.csv"] = strToU8(csv());
   files["results.json"] = strToU8(JSON.stringify({ area: s.area, storm: s.storm, params: s.params, features: s.features, without: base, with: design }, null, 2));

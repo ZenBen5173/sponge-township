@@ -334,30 +334,78 @@ export class Scene3D {
       const shade = 0.86 + ((b.id * 37) % 11) / 80;
       wall.setRGB(0.93 * shade, 0.9 * shade, 0.84 * shade, THREE.SRGBColorSpace);
       roof.setHex(b.roof, THREE.SRGBColorSpace);
-      roof.lerp(new THREE.Color(0.62, 0.36, 0.26), 0.35);
-      for (let k = 0; k < ring.length; k++) {
-        const [ax, az] = ring[k];
-        const [bx, bz] = ring[(k + 1) % ring.length];
-        const nx = bz - az;
-        const nz = -(bx - ax);
-        const nl = Math.hypot(nx, nz) || 1;
-        const n = [-nx / nl, 0, -nz / nl];
-        const quad = [ax, y0, az, bx, y0, bz, bx, y1, bz, ax, y0, az, bx, y1, bz, ax, y1, az];
-        pos.push(...quad);
-        for (let v = 0; v < 6; v++) {
-          nor.push(...n);
-          const top = quad[v * 3 + 1] === y1 ? 1 : 0.82;
-          col.push(wall.r * top, wall.g * top, wall.b * top);
-        }
+      const hsl = { h: 0, s: 0, l: 0 };
+      roof.getHSL(hsl);
+      roof.setHSL(hsl.h, Math.min(1, hsl.s * 1.25), Math.min(0.62, Math.max(0.22, hsl.l * 1.1)));
+      let cx = 0;
+      let cz = 0;
+      for (const [x, z] of ring) {
+        cx += x;
+        cz += z;
       }
-      const contour = ring.map(([x, z]) => new THREE.Vector2(x, z));
-      const tris = THREE.ShapeUtils.triangulateShape(contour, []);
-      for (const t of tris) {
-        for (const v of [t[0], t[2], t[1]]) {
-          pos.push(ring[v][0], y1, ring[v][1]);
-          nor.push(0, 1, 0);
-          col.push(roof.r, roof.g, roof.b);
+      cx /= ring.length;
+      cz /= ring.length;
+      // a triangle with its normal turned away from the building's centre line (walls) or up (roofs)
+      const tri = (p: number[][], color: THREE.Color, k = 1, up = false) => {
+        const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2];
+        const vx = p[2][0] - p[0][0], vy = p[2][1] - p[0][1], vz = p[2][2] - p[0][2];
+        let n = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+        const l = Math.hypot(n[0], n[1], n[2]) || 1;
+        n = n.map((v) => v / l);
+        const mx = (p[0][0] + p[1][0] + p[2][0]) / 3 - cx;
+        const mz = (p[0][2] + p[1][2] + p[2][2]) / 3 - cz;
+        const flip = up ? n[1] < 0 : n[0] * mx + n[2] * mz < 0;
+        const order = flip ? [p[0], p[2], p[1]] : p;
+        if (flip) n = n.map((v) => -v);
+        for (const q of order) {
+          pos.push(q[0], q[1], q[2]);
+          nor.push(n[0], n[1], n[2]);
+          const sh = q[1] >= y1 - 0.01 || up ? 1 : q[1] <= y0 + 0.01 ? 0.8 : 0.92;
+          col.push(color.r * sh * k, color.g * sh * k, color.b * sh * k);
         }
+      };
+      const quadW = (a3: number[], b3: number[], c3: number[], d3: number[], color: THREE.Color, up = false) => {
+        tri([a3, b3, c3], color, 1, up);
+        tri([a3, c3, d3], color, 1, up);
+      };
+      const lens = ring.map((p, k) => Math.hypot(ring[(k + 1) % ring.length][0] - p[0], ring[(k + 1) % ring.length][1] - p[1]));
+      const pitched = ring.length === 4 && b.height <= 12;
+      if (pitched) {
+        // terrace house: walls to the eaves, a gabled roof along the long side
+        // the ridge runs along the terrace row for detected houses, else along the longer side
+        let long = lens[0] + lens[2] >= lens[1] + lens[3] ? 0 : 1;
+        if (b.ridgeEdge !== undefined) long = b.ridgeEdge; // reversing a 4-gon keeps edge parity
+        const short = Math.min(lens[1 - long], lens[3 - long]);
+        const ridgeH = Math.min(2.4, 0.42 * short);
+        const ye = y1 - ridgeH;
+        const P = ring.map(([x, z]) => [x, z]);
+        const mid = (a2: number[], b2: number[]) => [(a2[0] + b2[0]) / 2, (a2[1] + b2[1]) / 2];
+        // the two short (gable) sides are edges long+1 and long+3
+        const g1 = [P[(long + 1) % 4], P[(long + 2) % 4]];
+        const g2 = [P[(long + 3) % 4], P[(long + 4) % 4]];
+        const r1 = mid(g1[0], g1[1]);
+        const r2 = mid(g2[0], g2[1]);
+        for (let k = 0; k < 4; k++) {
+          const A2 = P[k];
+          const B2 = P[(k + 1) % 4];
+          quadW([A2[0], y0, A2[1]], [B2[0], y0, B2[1]], [B2[0], ye, B2[1]], [A2[0], ye, A2[1]], wall);
+        }
+        tri([[g1[0][0], ye, g1[0][1]], [g1[1][0], ye, g1[1][1]], [r1[0], y1, r1[1]]], wall);
+        tri([[g2[0][0], ye, g2[0][1]], [g2[1][0], ye, g2[1][1]], [r2[0], y1, r2[1]]], wall);
+        // roof planes: from each long eave up to the ridge (r2 → r1), with a little overhang
+        const e1 = [P[long], P[(long + 1) % 4]];
+        const e2 = [P[(long + 2) % 4], P[(long + 3) % 4]];
+        quadW([e1[0][0], ye, e1[0][1]], [e1[1][0], ye, e1[1][1]], [r1[0], y1, r1[1]], [r2[0], y1, r2[1]], roof, true);
+        quadW([e2[0][0], ye, e2[0][1]], [e2[1][0], ye, e2[1][1]], [r2[0], y1, r2[1]], [r1[0], y1, r1[1]], roof, true);
+      } else {
+        for (let k = 0; k < ring.length; k++) {
+          const [ax, az] = ring[k];
+          const [bx, bz] = ring[(k + 1) % ring.length];
+          quadW([ax, y0, az], [bx, y0, bz], [bx, y1, bz], [ax, y1, az], wall);
+        }
+        const contour = ring.map(([x, z]) => new THREE.Vector2(x, z));
+        const tris = THREE.ShapeUtils.triangulateShape(contour, []);
+        for (const t of tris) tri([[ring[t[0]][0], y1, ring[t[0]][1]], [ring[t[2]][0], y1, ring[t[2]][1]], [ring[t[1]][0], y1, ring[t[1]][1]]], roof, 1, true);
       }
       this.buildingRanges.push([start, pos.length / 3 - start]);
     }
@@ -986,6 +1034,7 @@ export class Scene3D {
     this.sun.intensity = 2.4 * (1 - st * 0.75) + this.flash * 3;
     this.hemi.intensity = 1.1 * (1 - st * 0.35) + this.flash * 1.5;
     this.onWeather?.(st);
+    for (const t of [this.terrainBase, this.terrainDesign]) if (t) (t.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.42 * (1 - st * 0.55) + this.flash * 0.3;
     const modeIdx = this.view === "diff" ? 2 : this.shade === "depth" ? 1 : 0;
     for (const m of this.waterMats) {
       m.uniforms.uTime.value = t;

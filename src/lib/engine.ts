@@ -4,7 +4,8 @@ import { buildScene, placeCourt, type SceneData } from "./data/scene";
 import type { Area } from "./geo";
 import { Scene3D } from "./render/scene3d";
 import { type RunFrame, SimController } from "./sim/controller";
-import { Land } from "./sim/types";
+import { ORIFICE_CD } from "./sim/model";
+import { type FeatureStat, Land } from "./sim/types";
 import { type NearStats, useApp } from "./store";
 
 const NEAR_R = 150;
@@ -261,6 +262,10 @@ class Engine {
   }
 
   async startRun() {
+    if (this.drainTimer) {
+      clearInterval(this.drainTimer);
+      this.drainTimer = null;
+    }
     const s = useApp.getState();
     if (!s.scene) return;
     s.resetRun();
@@ -374,7 +379,69 @@ class Engine {
         history: { t: h.t, level: h.level, rain: h.rain },
       };
       this.bc?.postMessage({ msg, alerts: useApp.getState().alerts, closed: this.alerts.closed });
+      if (done && (sq.level ?? 0) > 0.01) this.drainDown(t, sq, msg);
     }
+  }
+
+  /**
+   * The 2-D run stops two hours after the rain; the court may still hold water. Fast-forward its
+   * emptying with the outlet alone (the same orifice equation, drains no longer backed up) so the
+   * dashboard can show the whole cycle through to "Court open again".
+   */
+  private drainTimer: ReturnType<typeof setInterval> | null = null;
+  private drainDown(t0: number, sq: FeatureStat, last: MonitorMessage) {
+    if (this.drainTimer) clearInterval(this.drainTimer);
+    const s = useApp.getState();
+    const f = s.features.find((x) => x.id === sq.id);
+    if (!f || f.kind !== "square") return;
+    const area = sq.capacity / f.depth;
+    const Ao = (Math.PI * (f.outletD ?? 0.2) ** 2) / 4;
+    let V = sq.stored;
+    let t = t0;
+    const hist = { t: [...last.history.t], level: [...last.history.level], rain: [...last.history.rain] };
+    this.drainTimer = setInterval(() => {
+      const clog = useApp.getState().params.clog;
+      let q = 0;
+      let qe = 0;
+      for (let k = 0; k < 60; k++) {
+        const qc = ORIFICE_CD * Ao * Math.sqrt(2 * 9.81 * Math.max(V / area, 0));
+        qe = qc;
+        q = qc * (1 - clog);
+        V = Math.max(0, V - q * 10);
+        t += 10;
+      }
+      const level = V / area;
+      hist.t.push(t);
+      hist.level.push(level);
+      hist.rain.push(0);
+      const fresh = this.alerts.update({ at: t, level, fill: V / (area * f.depth), rainMmH: 0, heavyExpected: false, outflow: q, expectedOutflow: qe, secondsPerUnit: 1 });
+      if (fresh.length) useApp.getState().pushAlerts(fresh);
+      useApp.setState({ courtClosed: this.alerts.closed });
+      const k = ORIFICE_CD * Ao * Math.sqrt(2 * 9.81) * (1 - clog);
+      const msg: MonitorMessage = {
+        ...last,
+        t,
+        tEnd: Math.max(t, last.tEnd),
+        level,
+        fill: V / (area * f.depth),
+        stored: V,
+        rainMmH: 0,
+        inflow: 0,
+        outflow: q,
+        expectedOutflow: qe,
+        emptyAt: level < 0.01 ? t : null,
+        projectedEmpty: k > 0 ? (2 * area * Math.sqrt(Math.max(0, level - 0.01))) / k : null,
+        running: true,
+        history: hist,
+        drainDown: true,
+      };
+      this.bc?.postMessage({ msg, alerts: useApp.getState().alerts, closed: this.alerts.closed });
+      if (!this.alerts.closed || t - t0 > 48 * 3600) {
+        clearInterval(this.drainTimer!);
+        this.drainTimer = null;
+        this.bc?.postMessage({ msg: { ...msg, running: false }, alerts: useApp.getState().alerts, closed: this.alerts.closed });
+      }
+    }, 60);
   }
 
   /** After a run: render the peak flood of both scenarios for the export pack. */
