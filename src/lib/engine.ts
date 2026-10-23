@@ -403,7 +403,8 @@ class Engine {
       const clog = useApp.getState().params.clog;
       let q = 0;
       let qe = 0;
-      for (let k = 0; k < 60; k++) {
+      // 2 simulated minutes per 60 ms tick: ~15 s for a full court, time enough to try the clog switch
+      for (let k = 0; k < 12; k++) {
         const qc = ORIFICE_CD * Ao * Math.sqrt(2 * 9.81 * Math.max(V / area, 0));
         qe = qc;
         q = qc * (1 - clog);

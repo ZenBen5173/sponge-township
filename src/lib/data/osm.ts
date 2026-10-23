@@ -202,7 +202,7 @@ export async function loadOsm(bbox: BBox): Promise<{ data: OsmData; warning?: st
   }
   try {
     const q = [bbox.s, bbox.w, bbox.n, bbox.e].map((v) => v.toFixed(6)).join(",");
-    const res = await fetch(`/api/osm?bbox=${q}`, { signal: AbortSignal.timeout(55_000) });
+    const res = await fetch(`/api/osm?bbox=${q}`, { signal: AbortSignal.timeout(110_000) });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? res.statusText);
     return { data: parseOverpass(json, "live") };

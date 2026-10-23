@@ -402,6 +402,9 @@ export class FloodModel {
     // Roads keep their roadside drains.
     const roads: number[] = [];
     for (let c = 0; c < N; c++) if (land[c] === Land.Road && !this.blocked[c]) roads.push(c);
+    // No mapped streets (OpenStreetMap unavailable): treat open ground as the street surface, so the
+    // drains still work and the street readouts measure the water people would walk through.
+    if (!roads.length) for (let c = 0; c < N; c++) if (!this.blocked[c] && (land[c] === Land.Open || land[c] === Land.Paved)) roads.push(c);
     this.roadCells = Int32Array.from(roads);
     const totalArea = N * this.A;
     this.netBase = (params.drainMmPerHour / 1000 / 3600) * totalArea;
